@@ -16,5 +16,3 @@ python point_pillars_training_run.py
 # Instructions to deploy on a cloud notebook instance (Amazon SageMaker etc.)
 Please read this blog article: https://link.medium.com/TVNzx03En8
 
-# Code Explaination
-
