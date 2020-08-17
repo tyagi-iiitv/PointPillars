@@ -3,15 +3,15 @@ Point PIllars 3D detection network implementation in Tensorflow. External contri
 
 Download the LiDAR, Calibration and Label_2 **zip** files from the [Kitti dataset link](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) and unzip the files, giving the following directory structure:
 
-.
-+-- training
-    +-- calib
-    +-- label_2
-    +-- velodyne
-+-- testing
-    +-- calib
-    +-- velodyne
-
+```plain
+├── training    <-- 7481 train data
+   |   ├── calib
+   |   ├── label_2
+   |   ├── velodyne
+└── testing     <-- 7580 test data
+           ├── calib
+           ├── velodyne
+```
 
 # Installation
 ```
