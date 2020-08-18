@@ -29,5 +29,7 @@ python point_pillars_training_run.py
 # Deploy on a cloud notebook instance (Amazon SageMaker etc.)
 Please read this blog article: https://link.medium.com/TVNzx03En8
 
+# Technical details about this code
+Please refer to this [article](https://medium.com/@a_tyagi/implementing-point-pillars-in-tensorflow-c38d10e9286?source=friends_link&sk=90995fae2d0a9c4e0dd5ec420c218c84) on Medium. 
 
 
