@@ -113,7 +113,7 @@ class DataProcessor(Parameters):
 #         print(best_anchors)
         selection = select(target, best_anchors)
         print("Selection shape", selection.shape)
-        sys.exit()
+#         sys.exit()
         # Selection is best anchor for each (object, xgridcell, ygridcell). See that this is a 10 dim vector containing info about the best anchor for each grid cell. 
         
         # one hot encoding of class
