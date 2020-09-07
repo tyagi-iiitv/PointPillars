@@ -68,8 +68,11 @@ class DataProcessor(Parameters):
         labels = list(filter(lambda x: x.classification in self.classes, labels))
         
         if len(labels) == 0:
-            return
-        
+            pX, pY = int(self.Xn / self.downscaling_factor), int(self.Yn / self.downscaling_factor)
+            a = int(self.anchor_dims.shape[0])
+            return np.zeros((pX, pY, a), dtype='float32'), np.zeros((pX, pY, a, self.nb_dims), dtype='float32'),\
+                   np.zeros((pX, pY, a, self.nb_dims), dtype='float32'), np.zeros((pX, pY, a), dtype='float32'),\
+                   np.zeros((pX, pY, a, self.nb_classes), dtype='float64')
         
         #For each label file, generate these properties except for the Don't care class
         target_positions = np.array([label.centroid for label in labels], dtype=np.float32)
