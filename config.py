@@ -55,6 +55,7 @@ class NetworkParameters:
                             [0.8, 0.6, 1.73, -0.6, 0],
                             [0.8, 0.6, 1.73, -0.6, 1.5708],
                             ], dtype=np.float32).tolist()
+    nb_dims = 3
 
     positive_iou_threshold = 0.6
     negative_iou_threshold = 0.3
