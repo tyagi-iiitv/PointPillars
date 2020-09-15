@@ -42,12 +42,12 @@ if __name__ == "__main__":
     training_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files, label_files, calibration_files)
 
     try:
-        pillar_net.fit_generator(training_gen,
-                                 len(training_gen),
-                                 callbacks=callbacks,
-                                 use_multiprocessing=True,
-                                 epochs=int(params.total_training_epochs),
-                                 workers=6)
+        pillar_net.fit(training_gen,
+                       steps_per_epoch=len(training_gen),
+                       callbacks=callbacks,
+                       use_multiprocessing=True,
+                       epochs=int(params.total_training_epochs),
+                       workers=6)
     except KeyboardInterrupt:
         model_str = "interrupted_%s.h5" % time.strftime("%Y%m%d-%H%M%S")
         pillar_net.save(os.path.join(log_dir, model_str))
