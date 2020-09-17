@@ -25,14 +25,15 @@ class GridParameters:
 
 class DataParameters:
 
-    classes = {"Car":               0,
-               "Pedestrian":        1,
-               "Person_sitting":    1,
-               "Cyclist":           2,
-               "Truck":             3,
-               "Van":               3,
-               "Tram":              3,
-               "Misc":              3,
+    classes = {"bg":                0,
+               "Car":               1,
+               "Pedestrian":        2,
+               "Person_sitting":    2,
+               "Cyclist":           3,
+               "Truck":             4,
+               "Van":               4,
+               "Tram":              4,
+               "Misc":              4,
                }
 
     nb_classes = len(np.unique(list(classes.values())))
