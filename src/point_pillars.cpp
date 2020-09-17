@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 namespace py = pybind11;
 
 struct IntPairHash {
@@ -331,7 +332,7 @@ int clip(int n, int lower, int upper) {
   return std::max(lower, std::min(n, upper));
 }
 
-pybind11::array_t<float> createPillarsTarget(const pybind11::array_t<float>& objectPositions,
+std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind11::array_t<float>& objectPositions,
                                              const pybind11::array_t<float>& objectDimensions,
                                              const pybind11::array_t<float>& objectYaws,
                                              const pybind11::array_t<int>& objectClassIds,
@@ -429,6 +430,8 @@ pybind11::array_t<float> createPillarsTarget(const pybind11::array_t<float>& obj
         ptr1[idx] = 0;
     }
 
+    int posCnt = 0;
+    int negCnt = 0;
     int objectCount = 0;
     if (printTime)
     {
@@ -529,6 +532,7 @@ pybind11::array_t<float> createPillarsTarget(const pybind11::array_t<float>& obj
         if (maxIou < positiveThreshold) // Comparing maxIOU for that object obtained after checking with every anchor box
             // If none of the anchors passed the threshold, then we place the best anchor details for that object. 
         {
+            negCnt++;
             if (printTime)
             {
 //                 std::cout << "\nThere was no sufficiently overlapping anchor anywhere for object " << objectCount << std::endl;
@@ -565,6 +569,7 @@ pybind11::array_t<float> createPillarsTarget(const pybind11::array_t<float>& obj
         }
         else
         {
+            posCnt++;
             if (printTime)
             {
                 std::cout << "\nAt least 1 anchor was positively matched for object " << objectCount << std::endl;
@@ -580,7 +585,7 @@ pybind11::array_t<float> createPillarsTarget(const pybind11::array_t<float>& obj
     if (printTime)
         std::cout << "createPillarsTarget took: " << static_cast<float>(duration) / 1e6 << " seconds" << std::endl;
 
-    return tensor;
+    return std::make_tuple(tensor, posCnt, negCnt);
 }
 
 

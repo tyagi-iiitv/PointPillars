@@ -38,7 +38,7 @@ if __name__ == "__main__":
     lidar_files = sorted(glob(os.path.join(DATA_ROOT, "velodyne", "*.bin")))
     label_files = sorted(glob(os.path.join(DATA_ROOT, "label_2", "*.txt")))
     calibration_files = sorted(glob(os.path.join(DATA_ROOT, "calib", "*.txt")))
-    print(len(lidar_files), len(label_files), len(calibration_files))
+    print("File distribution (lidar, label, calib): ", len(lidar_files), len(label_files), len(calibration_files))
     training_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files, label_files, calibration_files)
 
     try:

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow_probability as tfp
 from tensorflow.python.keras import backend as K
 from config import Parameters
 
@@ -32,7 +33,11 @@ class PointPillarNetworkLoss:
 
         focal_loss = gamma_factor * alpha_factor * cross_entropy
 
-        mask = tf.logical_or(tf.equal(y_true, 0), tf.equal(y_true, 1))
+        neg_mask = tf.equal(y_true, 0)
+        thr = tfp.stats.percentile(tf.boolean_mask(focal_loss, neg_mask), 90.)
+        hard_neg_mask = tf.greater(focal_loss, thr)
+        # mask = tf.logical_or(tf.equal(y_true, 0), tf.equal(y_true, 1))
+        mask = tf.logical_or(self.mask, tf.logical_and(neg_mask, hard_neg_mask))
         masked_loss = tf.boolean_mask(focal_loss, mask)
 
         return self.focal_weight * tf.reduce_mean(masked_loss)
