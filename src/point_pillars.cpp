@@ -353,7 +353,7 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
                                              float zMax,
                                              bool printTime = false)
 {
-
+    
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
     const auto xSize = static_cast<int>(std::floor((xMax - xMin) / (xStep * downscalingFactor)));
@@ -421,7 +421,7 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
 
     pybind11::array_t<float> tensor;
     tensor.resize({nbObjects, xSize, ySize, nbAnchors, 10}); //Tensor of size (6,252,252,4,10) for first file
-
+    
     pybind11::buffer_info tensor_buffer = tensor.request();
     float *ptr1 = (float *) tensor_buffer.ptr;
     // Zero filling the tensor. Every element is presently zero
