@@ -24,6 +24,8 @@ class DataProcessor(Parameters):
         self.anchor_dims = anchor_dims[:, 0:3]
         self.anchor_z = anchor_dims[:, 3]
         self.anchor_yaw = anchor_dims[:, 4]
+        # Counts may be used to make statistic about how well the anchor boxes fit the objects
+        self.pos_cnt, self.neg_cnt = 0, 0
 
     @staticmethod
     def transform_labels_into_lidar_coordinates(labels: List[Label3D], R: np.ndarray, t: np.ndarray):
@@ -84,26 +86,28 @@ class DataProcessor(Parameters):
         assert np.all(target_yaw >= -np.pi) & np.all(target_yaw <= np.pi)
         assert len(target_positions) == len(target_dimension) == len(target_yaw) == len(target_class)
 
-        target = createPillarsTarget(target_positions,
-                                     target_dimension,
-                                     target_yaw,
-                                     target_class,
-                                     self.anchor_dims,
-                                     self.anchor_z,
-                                     self.anchor_yaw,
-                                     self.positive_iou_threshold,
-                                     self.negative_iou_threshold,
-                                     self.nb_classes,
-                                     self.downscaling_factor,
-                                     self.x_step,
-                                     self.y_step,
-                                     self.x_min,
-                                     self.x_max,
-                                     self.y_min,
-                                     self.y_max,
-                                     self.z_min,
-                                     self.z_max,
-                                     False)
+        target, pos, neg = createPillarsTarget(target_positions,
+                                               target_dimension,
+                                               target_yaw,
+                                               target_class,
+                                               self.anchor_dims,
+                                               self.anchor_z,
+                                               self.anchor_yaw,
+                                               self.positive_iou_threshold,
+                                               self.negative_iou_threshold,
+                                               self.nb_classes,
+                                               self.downscaling_factor,
+                                               self.x_step,
+                                               self.y_step,
+                                               self.x_min,
+                                               self.x_max,
+                                               self.y_min,
+                                               self.y_max,
+                                               self.z_min,
+                                               self.z_max,
+                                               False)
+        self.pos_cnt += pos
+        self.neg_cnt += neg
 
         print("Target shape", target.shape)
 #         print(target[...,0:1].shape)

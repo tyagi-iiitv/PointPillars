@@ -11,6 +11,10 @@ class Label3D:
         self.dimension = dimension
         self.yaw = yaw
 
+    def __str__(self):
+        return "GT | Cls: %s, x: %f, y: %f, l: %f, w: %f, yaw: %f" % (
+            self.classification, self.centroid[0], self.centroid[1], self.dimension[0], self.dimension[1], self.yaw)
+
 
 class DataReader:
 
