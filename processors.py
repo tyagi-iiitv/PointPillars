@@ -1,5 +1,6 @@
 from typing import List
 import numpy as np
+import tensorflow as tf
 
 from tensorflow.python.keras.utils.data_utils import Sequence
 
@@ -15,14 +16,6 @@ def select_best_anchors(arr):
     # arr[..., 0:1] gets the occupancy value from occ in {-1, 0, 1}, i.e. {bad match, neg box, pos box}
     ind = (np.argmax(arr[..., 0:1], axis=0),) + tuple(dims)
     return arr[ind]
-
-
-def get_one_hot_encoding(clf, nb_classes):
-    """ one hot encoding of classification array """
-    assert np.all(clf != -1)
-    ohe = np.eye(nb_classes)[np.array(clf, dtype=np.int32).reshape(-1)]
-    ohe = ohe.reshape(list(clf.shape) + [nb_classes])
-    return ohe
 
 
 class DataProcessor(Parameters):
@@ -118,10 +111,10 @@ class DataProcessor(Parameters):
         self.neg_cnt += neg
 
         # return a merged target view for all objects in the ground truth and get categorical labels
-        selection = select_best_anchors(target)
-        ohe = get_one_hot_encoding(selection[..., 6], self.nb_classes)
+        sel = select_best_anchors(target)
+        ohe = tf.keras.utils.to_categorical(sel[..., 9], num_classes=self.nb_classes, dtype='float64')
 
-        return selection[..., 0], selection[..., 1:4], selection[..., 4:7], selection[..., 7], selection[..., 8], ohe
+        return sel[..., 0], sel[..., 1:4], sel[..., 4:7], sel[..., 7], sel[..., 8], ohe
 
 
 class SimpleDataGenerator(DataProcessor, Sequence):
