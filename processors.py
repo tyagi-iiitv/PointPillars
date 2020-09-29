@@ -188,40 +188,12 @@ class SimpleDataGenerator(DataProcessor, Sequence):
             angle = np.array(angle)
             heading = np.array(heading)
             classification = np.array(classification)
-            #             print(pillars[0], pillars[0].shape)
-            #             print("..................")
-            #             print(voxels[0], voxels[0].shape)
-            #             print("..................")
-            #             print(occupancy[0], occupancy[0].shape)
-            #             print("..................")
-            #             print(position[0], position[0].shape)
-            #             print("..................")
-            #             print(size[0], size[0].shape)
-            #             print("..................")
-            #             print(angle[0], angle[0].shape)
-            #             print("..................")
-            #             print(heading[0], heading[0].shape)
-            #             print("..................")
-            #             print(classification[0], classification[0].shape)
-            #             sys.exit()
-            '''
-            Pillars (12000,100,7) for 12000 pillars, each pillar has 100 points (included zero padded points). And each point has 7 values (x,y,z,intensity,xc,yc,zc).
-
-            Voxels (12000,3) The x,y,z center of each pillar.
-
-            Occupancy, Position, Size, Angle, Heading, Classification are calculated from point_pillars.cpp file where we are splitting a 10 dim vector
-            '''
             return [pillars, voxels], [occupancy, position, size, angle, heading, classification]
         else:
             return [pillars, voxels]
 
     def on_epoch_end(self):
         #         print("inside epoch")
-        #         shuffled_indices = np.random.permutation(np.arange(0, len(self.lidar_files)))
-        #         self.lidar_files = self.lidar_files[shuffled_indices]
-
         if self.label_files is not None:
             self.lidar_files, self.label_files, self.calibration_files = \
                 shuffle(self.lidar_files, self.label_files, self.calibration_files)
-#             self.calibration_files = self.calibration_files[shuffled_indices]
-#             self.label_files = self.label_files[shuffled_indices]
