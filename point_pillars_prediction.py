@@ -1,25 +1,25 @@
 import os
-import tensorflow as tf
 from glob import glob
+import numpy as np
+import tensorflow as tf
 from processors import SimpleDataGenerator
 from inference_utils import generate_bboxes_from_pred, GroundTruthGenerator
 from readers import KittiDataReader
 from config import Parameters
 from network import build_point_pillar_graph
 
-DATA_ROOT = "../validation_small"  
+DATA_ROOT = "../training"
 MODEL_ROOT = "./logs"
 
-# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
-# os.environ["CUDA_VISIBLE_DEVICES"]="0"
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 if __name__ == "__main__":
 
     params = Parameters()
     pillar_net = build_point_pillar_graph(params)
     pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
-    pillar_net.summary()
+    # pillar_net.summary()
 
     data_reader = KittiDataReader()
 

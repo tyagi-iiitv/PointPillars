@@ -62,19 +62,20 @@ class NetworkParameters:
     negative_iou_threshold = 0.3
     batch_size = 4
     total_training_epochs = 160
+    iters_to_decay = 101040.    # 15 * 4 * ceil(6733. / 4) --> every 15 epochs on 6733 kitti samples, cf. pillar paper
     learning_rate = 2e-4
     decay_rate = 1e-8
     L1 = 0
     L2 = 0
     alpha = 0.25
     gamma = 2.0
-
-    focal_weight = 1.0
-    loc_weight = 2.0
-    size_weight = 2.0
-    angle_weight = 2.0
-    heading_weight = 0.2
-    class_weight = 0.2
+                            # original pillars paper values
+    focal_weight = 3.0      # 1.0
+    loc_weight = 2.0        # 2.0
+    size_weight = 2.0       # 2.0
+    angle_weight = 1.0      # 2.0
+    heading_weight = 0.2    # 0.2
+    class_weight = 0.5      # 0.2
 
     def __init__(self):
         super(NetworkParameters, self).__init__()
