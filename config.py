@@ -25,18 +25,18 @@ class GridParameters:
 
 class DataParameters:
 
-    classes = {"bg":                0,
-               "Car":               1,
-               "Pedestrian":        2,
-               "Person_sitting":    2,
-               "Cyclist":           3,
-               "Truck":             4,
-               "Van":               4,
-               "Tram":              4,
-               "Misc":              4,
+    classes = {"Car":               0,
+               "Pedestrian":        1,
+               "Person_sitting":    1,
+               "Cyclist":           2,
+               "Truck":             3,
+               "Van":               3,
+               "Tram":              3,
+               "Misc":              3,
                }
 
     nb_classes = len(np.unique(list(classes.values())))
+    assert nb_classes == np.max(np.unique(list(classes.values()))) + 1, 'Starting class indexing at zero.'
 
     def __init__(self):
         super(DataParameters, self).__init__()
@@ -62,19 +62,20 @@ class NetworkParameters:
     negative_iou_threshold = 0.3
     batch_size = 4
     total_training_epochs = 160
+    iters_to_decay = 101040.    # 15 * 4 * ceil(6733. / 4) --> every 15 epochs on 6733 kitti samples, cf. pillar paper
     learning_rate = 2e-4
     decay_rate = 1e-8
     L1 = 0
     L2 = 0
     alpha = 0.25
     gamma = 2.0
-
-    focal_weight = 1.0
-    loc_weight = 2.0
-    size_weight = 2.0
-    angle_weight = 2.0
-    heading_weight = 0.2
-    class_weight = 0.2
+                            # original pillars paper values
+    focal_weight = 3.0      # 1.0
+    loc_weight = 2.0        # 2.0
+    size_weight = 2.0       # 2.0
+    angle_weight = 1.0      # 2.0
+    heading_weight = 0.2    # 0.2
+    class_weight = 0.5      # 0.2
 
     def __init__(self):
         super(NetworkParameters, self).__init__()

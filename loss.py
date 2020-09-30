@@ -20,6 +20,7 @@ class PointPillarNetworkLoss:
         return [self.focal_loss, self.loc_loss, self.size_loss, self.angle_loss, self.heading_loss, self.class_loss]
 
     def focal_loss(self, y_true: tf.Tensor, y_pred: tf.Tensor):
+        """ y_true value from occ in {-1, 0, 1}, i.e. {bad match, neg box, pos box} """
 
         self.mask = tf.equal(y_true, 1)
 
@@ -74,6 +75,6 @@ class PointPillarNetworkLoss:
         return self.heading_weight * tf.reduce_mean(masked_loss)
 
     def class_loss(self, y_true: tf.Tensor, y_pred: tf.Tensor):
-        loss = tf.compat.v1.losses.sigmoid_cross_entropy(y_true, y_pred, reduction="none")
+        loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
         masked_loss = tf.boolean_mask(loss, self.mask)
         return self.class_weight * tf.reduce_mean(masked_loss)
