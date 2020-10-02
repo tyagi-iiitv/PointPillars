@@ -24,7 +24,7 @@ After placing the Kitti dataset in the root directory, run the following code
 git clone --recurse-submodules https://github.com/tyagi-iiitv/PointPillars.git
 virtualenv --python=/usr/bin/python3.8 env
 source ./env/bin/activate
-pip install tensorflow-gpu, tensorflow_probability, sklearn, opencv-python
+pip install tensorflow-gpu tensorflow_probability sklearn opencv-python
 cd PointPillars
 python setup.py install
 python point_pillars_training_run.py
