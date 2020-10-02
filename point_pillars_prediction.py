@@ -5,9 +5,11 @@ from processors import SimpleDataGenerator
 from readers import KittiDataReader
 from config import Parameters
 from network import build_point_pillar_graph
+import numpy as np
+import sys
 
-DATA_ROOT = "../validation_small"  
-MODEL_ROOT = "./logs"
+DATA_ROOT = "../training_small"  
+MODEL_ROOT = "./pretrained_models"
 
 # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
 # os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -17,7 +19,7 @@ if __name__ == "__main__":
 
     params = Parameters()
     pillar_net = build_point_pillar_graph(params)
-    pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+    pillar_net.load_weights(os.path.join(MODEL_ROOT, "model_new.h5"))
     pillar_net.summary()
 
     data_reader = KittiDataReader()
@@ -26,18 +28,20 @@ if __name__ == "__main__":
     label_files = sorted(glob(os.path.join(DATA_ROOT, "label_2", "*.txt")))
     calibration_files = sorted(glob(os.path.join(DATA_ROOT, "calib", "*.txt")))
 
-    eval_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files, label_files, calibration_files)
+    eval_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files)
     # eval_gen returns voxels and pillar_index for that bin file
 #     print(eval_gen)
     
-    occupancy, position, size, angle, heading, classification = pillar_net.predict(eval_gen, batch_size=1)
-    
+    selection_predict = pillar_net.predict(eval_gen) # This is y_pred
+    occupancy, position, size, angle, heading, classification=  selection[..., 0], selection[..., 1:4], selection[..., 4:7], selection[..., 7], selection[..., 8], selection[..., 9:]
     # Generating the bounding boxes based on the regression targets
     
     # Get only the boxes where Occupancy is 1. 
-    real_boxes = np.where(occupancy == 1)
+    real_boxes = np.where(occupancy > 0.8)
     # Get the indices of the occupancy array where it is 1
     coordinates = list(zip(real_boxes[0], real_boxes[1], real_boxes[2]))
+    print(real_boxes.shape)
+    sys.exit()
     # Assign anchor dimensions as original bounding box coordinates which will eventually be changed 
     # according to the predicted regression targets
     anchor_dims = params.anchor_dims
@@ -66,7 +70,7 @@ if __name__ == "__main__":
         predicted_boxes.append([bb_height, bb_width, bb_length, bb_y, bb_z, bb_x, bb_yaw, bb_heading,bb_cls])
     
     # Do all the further operations on predicted_boxes array, which contains the predicted bounding boxes
-    
-    
+    print(len(predicted_boxes))
+    print(predicted_boxes)
     
     

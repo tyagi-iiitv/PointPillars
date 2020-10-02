@@ -438,21 +438,22 @@ pybind11::array_t<float> createPillarsTarget(const pybind11::array_t<float>& obj
     for (const auto& labelBox: labelBoxes) //For every label box which is a 3d bounding box
     {
         // zone-in on potential spatial area of interest
-        // Length of (length,z) axis diagonal. 
-        float objectDiameter = std::sqrt(std::pow(labelBox.height, 2) + std::pow(labelBox.length, 2));
-        // Offset = Number of x axis grid boxes that can fit on the object diameter
-        const auto offset = static_cast<int>(std::ceil(objectDiameter / (xStep * downscalingFactor)));
-        // Xc = Number of x axis grid boxes that can fit between Xmin and Label's x coordinate
+        // Length of (width,length) axis diagonal.
+        float objectDiameter = std::sqrt(std::pow(labelBox.width, 2) + std::pow(labelBox.length, 2));
+        // Offset = Number of grid boxes that can fit on the object diameter
+        const auto x_offset = static_cast<int>(std::ceil(objectDiameter / (xStep * downscalingFactor)));
+        const auto y_offset = static_cast<int>(std::ceil(objectDiameter / (yStep * downscalingFactor)));
+        // Xc = Number of grid boxes that can fit between Xmin (Ymin) and Label's x (y) coordinate
         const auto xC = static_cast<int>(std::floor((labelBox.x - xMin) / (xStep * downscalingFactor)));
-        // XStart = Start from Xc - Number of boxes in object's diameter.
-        // For example the object is located at 5 unites and is 2 unites long. Then Xstart will begin
-        // the search from 3
-        const auto xStart = clip(xC - offset, 0, xSize);
-        // Similarly end the search at 8 units. Because the object cannot extend beyond that.
-        const auto xEnd = clip(xC + offset, 0, xSize);
         const auto yC = static_cast<int>(std::floor((labelBox.y - yMin) / (yStep * downscalingFactor)));
-        const auto yStart = clip(yC - offset, 0, ySize);
-        const auto yEnd = clip(yC + offset, 0, ySize);
+        // X(Y)Start = Start from Xc (Yc) - Number of boxes in object's diameter.
+        // For example the object is located at 5 unites and is 2 unites long. Then X(Y)start will begin
+        // the search from 3
+        const auto xStart = clip(xC - x_offset, 0, xSize);
+        const auto yStart = clip(yC - y_offset, 0, ySize);
+        // Similarly end the search at 8 units. Because the object cannot extend beyond that.
+        const auto xEnd = clip(xC + x_offset, 0, xSize);
+        const auto yEnd = clip(yC + y_offset, 0, ySize);
 
         float maxIou = 0;
         BoundingBox3D bestAnchor = {};

@@ -26,13 +26,13 @@ class GridParameters:
 class DataParameters:
 
     classes = {"Car":               0,
-               "Pedestrian":        1,
-               "Person_sitting":    1,
-               "Cyclist":           2,
-               "Truck":             3,
-               "Van":               3,
-               "Tram":              3,
-               "Misc":              3,
+#                "Pedestrian":        1,
+#                "Person_sitting":    1,
+#                "Cyclist":           2,
+#                "Truck":             3,
+#                "Van":               3,
+#                "Tram":              3,
+#                "Misc":              3,
                }
 
     nb_classes = len(np.unique(list(classes.values())))
@@ -55,6 +55,7 @@ class NetworkParameters:
                             [0.8, 0.6, 1.73, -0.6, 0],
                             [0.8, 0.6, 1.73, -0.6, 1.5708],
                             ], dtype=np.float32).tolist()
+    nb_dims = 3
 
     positive_iou_threshold = 0.6
     negative_iou_threshold = 0.3

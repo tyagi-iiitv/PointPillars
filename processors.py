@@ -68,8 +68,11 @@ class DataProcessor(Parameters):
         labels = list(filter(lambda x: x.classification in self.classes, labels))
         
         if len(labels) == 0:
-            return
-        
+            pX, pY = int(self.Xn / self.downscaling_factor), int(self.Yn / self.downscaling_factor)
+            a = int(self.anchor_dims.shape[0])
+            return np.zeros((pX, pY, a), dtype='float32'), np.zeros((pX, pY, a, self.nb_dims), dtype='float32'),\
+                   np.zeros((pX, pY, a, self.nb_dims), dtype='float32'), np.zeros((pX, pY, a), dtype='float32'),\
+                   np.zeros((pX, pY, a, self.nb_classes), dtype='float64')
         
         #For each label file, generate these properties except for the Don't care class
         target_positions = np.array([label.centroid for label in labels], dtype=np.float32)
@@ -108,6 +111,7 @@ class DataProcessor(Parameters):
 #         sys.exit()
         # target[..., 0:1] gets the 0th value of 10 dim tensor for every (object,xgridcell,ygridcell,anchor)
         # We are trying to get the index of best anchors for each (object, xgridcell, ygridcell)
+        print(target.shape)
         best_anchors = target[..., 0:1].argmax(0) #This always returns zero. Verify that this is correct. 
 #         print("Best Anchor shape", best_anchors.shape)
 #         print(best_anchors)
@@ -122,7 +126,9 @@ class DataProcessor(Parameters):
         clf[clf == -1] = 0
         ohe = np.eye(self.nb_classes)[np.array(clf, dtype=np.int32).reshape(-1)]
         ohe = ohe.reshape(list(clf.shape) + [self.nb_classes])
-
+        print(np.unique(selection[..., 0], return_counts=True))
+#         print(selection[..., 1:4][:3])
+        sys.exit()
         return selection[..., 0], selection[..., 1:4], selection[..., 4:7], selection[..., 7], selection[..., 8], ohe
 
 
