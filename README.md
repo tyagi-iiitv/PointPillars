@@ -26,7 +26,7 @@ virtualenv --python=/usr/bin/python3.8 env
 source ./env/bin/activate
 pip install tensorflow-gpu
 pip install sklearn
-pip install opencv-python==4.1.1
+pip install opencv-python
 cd PointPillars
 python setup.py install
 python point_pillars_training_run.py
