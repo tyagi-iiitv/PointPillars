@@ -23,6 +23,7 @@ if __name__ == "__main__":
     params = Parameters()
 
     pillar_net = build_point_pillar_graph(params)
+    pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
 
     loss = PointPillarNetworkLoss(params)
 
@@ -36,8 +37,10 @@ if __name__ == "__main__":
     label_files = sorted(glob(os.path.join(DATA_ROOT, "label_2", "*.txt")))
     calibration_files = sorted(glob(os.path.join(DATA_ROOT, "calib", "*.txt")))
     assert len(lidar_files) == len(label_files) == len(calibration_files), "Input dirs require equal number of files."
-    print("Amount of training samples: ", len(label_files))
-    training_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files, label_files, calibration_files)
+    validation_len = int(0.3*len(label_files))
+    
+    training_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files[:-validation_len], label_files[:-validation_len], calibration_files[:-validation_len])
+    validation_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files[-validation_len:], label_files[-validation_len:], calibration_files[-validation_len:])
 
     log_dir = MODEL_ROOT
     epoch_to_decay = int(
@@ -45,14 +48,15 @@ if __name__ == "__main__":
     callbacks = [
         tf.keras.callbacks.TensorBoard(log_dir=log_dir),
         tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(log_dir, "model.h5"),
-                                           monitor='loss', save_best_only=True),
+                                           monitor='val_loss', save_best_only=True),
         tf.keras.callbacks.LearningRateScheduler(
             lambda epoch, lr: lr * 0.8 if ((epoch % epoch_to_decay == 0) and (epoch != 0)) else lr, verbose=True),
-        tf.keras.callbacks.EarlyStopping(patience=20, monitor='loss'),
+        tf.keras.callbacks.EarlyStopping(patience=20, monitor='val_loss'),
     ]
 
     try:
         pillar_net.fit(training_gen,
+                       validation_data = validation_gen,
                        steps_per_epoch=len(training_gen),
                        callbacks=callbacks,
                        use_multiprocessing=True,
