@@ -37,6 +37,23 @@ Please read this blog article: https://link.medium.com/TVNzx03En8
 Please refer to this [article](https://medium.com/@a_tyagi/implementing-point-pillars-in-tensorflow-c38d10e9286?source=friends_link&sk=90995fae2d0a9c4e0dd5ec420c218c84) on Medium. 
 
 # Pretrained Model
-The Pretrained Point Pillars for Kitti with complete training and validation logs can be accessed with this [link](https://drive.google.com/file/d/1VfnYr3N7gZb2RuzQNCTrTIZoaoLEzc8O/view?usp=sharing). Use the file model.h5. 
+The Pretrained Point Pillars for Kitti with complete training and validation logs can be accessed with this [link](https://drive.google.com/file/d/1VfnYr3N7gZb2RuzQNCTrTIZoaoLEzc8O/view?usp=sharing). Use the file model.h5.
+
+# Saving the model as .pb
+Inside the point_pillars_training_run.py file, change the code as follows to save the model in .pb format. 
+
+```
+import sys
+if __name__ == "__main__":
+
+    params = Parameters()
+
+    pillar_net = build_point_pillar_graph(params)
+    pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+    pillar_net.save('new_model')
+    sys.exit()
+    # This saves the model as pb in the new_model directory. 
+    # Remove these lines during usual training. 
+```
 
 
