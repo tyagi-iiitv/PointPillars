@@ -5,7 +5,10 @@ import tensorflow as tf
 from tensorflow.python.keras.utils.data_utils import Sequence
 
 from config import Parameters
-from point_pillars import createPillars, createPillarsTarget
+# from point_pillars import createPillars, createPillarsTarget
+import cppimport
+point_pillars = cppimport.imp("point_pillars")
+
 from readers import DataReader, Label3D
 from sklearn.utils import shuffle
 import sys
@@ -49,7 +52,7 @@ class DataProcessor(Parameters):
         assert points.shape[1] == 4
         assert points.dtype == np.float32
 
-        pillars, indices = createPillars(points,
+        pillars, indices = point_pillars.createPillars(points,
                                          self.max_points_per_pillar,
                                          self.max_pillars,
                                          self.x_step,
@@ -87,7 +90,7 @@ class DataProcessor(Parameters):
         assert np.all(target_yaw >= -np.pi) & np.all(target_yaw <= np.pi)
         assert len(target_positions) == len(target_dimension) == len(target_yaw) == len(target_class)
 
-        target, pos, neg = createPillarsTarget(target_positions,
+        target, pos, neg = point_pillars.createPillarsTarget(target_positions,
                                                target_dimension,
                                                target_yaw,
                                                target_class,
