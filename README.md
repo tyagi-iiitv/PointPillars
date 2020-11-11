@@ -29,6 +29,7 @@ cd PointPillars
 python setup.py install
 python point_pillars_training_run.py
 ```
+Note: This code was tested on TF v2.5.0 (nightly at this time) but should work on all TF2 versions.
 
 # Deploy on a cloud notebook instance (Amazon SageMaker etc.)
 Please read this blog article: https://link.medium.com/TVNzx03En8

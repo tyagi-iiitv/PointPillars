@@ -1,7 +1,5 @@
 import tensorflow as tf
-import numpy as np
 from config import Parameters
-
 
 def build_point_pillar_graph(params: Parameters):
 
@@ -20,18 +18,22 @@ def build_point_pillar_graph(params: Parameters):
     else:
         input_shape = (max_pillars, max_points, nb_features)
 
-    input_pillars = tf.keras.layers.Input(input_shape, batch_size=batch_size, name="pillars/input")
-    input_indices = tf.keras.layers.Input((max_pillars, 3), batch_size=batch_size, name="pillars/indices",
+    input_pillars = tf.keras.layers.Input(input_shape, name="pillars/input")
+    input_indices = tf.keras.layers.Input((max_pillars, 3), name="pillars/indices",
                                           dtype=tf.int32)
 
-    def correct_batch_indices(tensor, batch_size):
-        array = np.zeros((batch_size, max_pillars, 3), dtype=np.float32)
-        for i in range(batch_size):
-            array[i, :, 0] = i
-        return tensor + tf.constant(array, dtype=tf.int32)
+    def correct_batch_indices(tensor):
+        
+        batch_size = tf.shape(tensor)[0]
+        repeated = tf.repeat(tf.range(batch_size), max_pillars)
+        batch_ix = tf.reshape(repeated, (batch_size, max_pillars, 1))
+        filler_zeros = tf.zeros((tf.shape(tensor)[0], max_pillars, 2), dtype=tf.int32)
+        concated = tf.concat([batch_ix, filler_zeros], axis=-1)
+        
+        return tf.math.add(tensor, concated)
 
     if batch_size > 1:
-            corrected_indices = tf.keras.layers.Lambda(lambda t: correct_batch_indices(t, batch_size))(input_indices)
+        corrected_indices = tf.keras.layers.Lambda(correct_batch_indices)(input_indices)
     else:
         corrected_indices = input_indices
 
@@ -46,11 +48,19 @@ def build_point_pillar_graph(params: Parameters):
     else:
         reshape_shape = (max_pillars, nb_channels)
 
-    x = tf.keras.layers.Reshape(reshape_shape, name="pillars/reshape")(x)
-    pillars = tf.keras.layers.Lambda(lambda inp: tf.scatter_nd(inp[0], inp[1],
-                                                               (batch_size,) + image_size + (nb_channels,)),
-                                     name="pillars/scatter_nd")([corrected_indices, x])
 
+    x = tf.keras.layers.Reshape(reshape_shape, name="pillars/reshape")(x)
+    pillars = tf.keras.layers.Lambda(lambda inp: tf.scatter_nd(
+                                                                inp[0], 
+                                                                inp[1],
+                                                                (
+                                                                    tf.shape(inp[0])[0], 
+                                                                    image_size[0], 
+                                                                    image_size[1], 
+                                                                    nb_channels)
+                                                               ),
+                                        name="pillars/scatter_nd")([corrected_indices, x])
+    
     # 2d cnn backbone
 
     # Block1(S, 4, C)
@@ -113,6 +123,10 @@ def build_point_pillar_graph(params: Parameters):
     clf = tf.keras.layers.Reshape(tuple(i // 2 for i in image_size) + (nb_anchors, nb_classes), name="clf/reshape")(clf)
 
     pillar_net = tf.keras.models.Model([input_pillars, input_indices], [occ, loc, size, angle, heading, clf])
-#     print(pillar_net.summary())
-
+    
     return pillar_net
+
+if __name__ == "__main__":
+    params = Parameters()
+    pillar_net = build_point_pillar_graph(params)
+    print(pillar_net.summary())
