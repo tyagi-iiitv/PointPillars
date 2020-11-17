@@ -55,5 +55,8 @@ if __name__ == "__main__":
     # This saves the model as pb in the new_model directory. 
     # Remove these lines during usual training. 
 ```
-
+# Loading the saved pb model
+```
+model = tf.saved_model.load('model_directory')
+```
 
