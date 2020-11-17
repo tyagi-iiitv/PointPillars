@@ -11,6 +11,8 @@ from sklearn.utils import shuffle
 import sys
 
 
+from point_viz.converter import PointvizConverter
+
 def select_best_anchors(arr):
     dims = np.indices(arr.shape[1:])
     # arr[..., 0:1] gets the occupancy value from occ in {-1, 0, 1}, i.e. {bad match, neg box, pos box}
@@ -33,15 +35,29 @@ class DataProcessor(Parameters):
     def transform_labels_into_lidar_coordinates(labels: List[Label3D], R: np.ndarray, t: np.ndarray):
         transformed = []
         for label in labels:
-            label.centroid = label.centroid @ np.linalg.inv(R).T - t
-            label.dimension = label.dimension[[2, 1, 0]]
+            label.centroid = (label.centroid - t) @ np.linalg.inv(R).T 
+            label.dimension = label.dimension[[2, 1, 0]] # h w l => l ,w ,h
             label.yaw -= np.pi / 2
             while label.yaw < -np.pi:
+                print("smaller than -pi")
                 label.yaw += (np.pi * 2)
             while label.yaw > np.pi:
+                print("larger than pi")
                 label.yaw -= (np.pi * 2)
             transformed.append(label)
         return labels
+
+    
+    def convert_labels_into_point_viz_format(self, labels: List[Label3D]):
+        label_list = []
+
+        for label in labels:
+            label_ = [label.dimension[2], label.dimension[0], label.dimension[1]]
+            label_.extend([label.centroid[0], label.centroid[1], label.centroid[2]])
+            label_.extend([label.yaw])
+            label_list.append(label_)
+
+        return np.array(label_list)
 
     def make_point_pillars(self, points: np.ndarray):
 
@@ -69,7 +85,7 @@ class DataProcessor(Parameters):
         # filter labels by classes (cars, pedestrians and Trams)
         # Label has 4 properties (Classification (0th index of labels file),
         # centroid coordinates, dimensions, yaw)
-        labels = list(filter(lambda x: x.classification in self.classes, labels))
+        labels = list(filter(lambda x: x.classification in self.classes_map, labels))
 
         if len(labels) == 0:
             pX, pY = int(self.Xn / self.downscaling_factor), int(self.Yn / self.downscaling_factor)
@@ -82,7 +98,7 @@ class DataProcessor(Parameters):
         target_positions = np.array([label.centroid for label in labels], dtype=np.float32)
         target_dimension = np.array([label.dimension for label in labels], dtype=np.float32)
         target_yaw = np.array([label.yaw for label in labels], dtype=np.float32)
-        target_class = np.array([self.classes[label.classification] for label in labels], dtype=np.int32)
+        target_class = np.array([self.classes_map[label.classification] for label in labels], dtype=np.int32)
 
         assert np.all(target_yaw >= -np.pi) & np.all(target_yaw <= np.pi)
         assert len(target_positions) == len(target_dimension) == len(target_yaw) == len(target_class)
@@ -151,12 +167,17 @@ class SimpleDataGenerator(DataProcessor, Sequence):
         heading = []
         classification = []
 
+        # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/original_processor"
+        # # Initialize and setup output directory.
+        # Converter = PointvizConverter(save_viz_path)
+
         for i in file_ids:
             lidar = self.data_reader.read_lidar(self.lidar_files[i])
             # For each file, dividing the space into a x-y grid to create pillars
             # Voxels are the pillar ids
             pillars_, voxels_ = self.make_point_pillars(lidar)
 
+            # print(pillars_.shape, voxels_.shape)
             pillars.append(pillars_)
             voxels.append(voxels_)
 
@@ -166,10 +187,29 @@ class SimpleDataGenerator(DataProcessor, Sequence):
                 # Labels are transformed into the lidar coordinate bounding boxes
                 # Label has 7 values, centroid, dimensions and yaw value.
                 label_transformed = self.transform_labels_into_lidar_coordinates(label, R, t)
+
+
+                # # Pass data and create html files.
+                # pts_rect = lidar[:,:3]
+                # intensity = lidar[:,3]
+                # # sample_info['pts_rect'][:,1] *= -1 # mirror the y axis
+                # # pts_rect[:,1] *= -1
+                # # coors = sample_info['pts_rect']
+                # bbox_params = self.convert_labels_into_point_viz_format(label_transformed)
+                # print(bbox_params)
+                # Converter.compile("ori_sample_{}".format(i), coors=pts_rect, intensity=intensity,
+                #                 bbox_params=bbox_params)
+                    
+                
+                # exit()
+
                 # These definitions can be found in point_pillars.cpp file
                 # We are splitting a 10 dim vector that contains this information.
                 occupancy_, position_, size_, angle_, heading_, classification_ = self.make_ground_truth(
                     label_transformed)
+
+                # print(occupancy_.shape, position_.shape, size_.shape, angle_.shape, heading_.shape, classification_.shape)
+                # exit()
 
                 occupancy.append(occupancy_)
                 position.append(position_)
@@ -189,6 +229,103 @@ class SimpleDataGenerator(DataProcessor, Sequence):
             heading = np.array(heading)
             classification = np.array(classification)
             return [pillars, voxels], [occupancy, position, size, angle, heading, classification]
+        else:
+            return [pillars, voxels]
+
+    def on_epoch_end(self):
+        #         print("inside epoch")
+        if self.label_files is not None:
+            self.lidar_files, self.label_files, self.calibration_files = \
+                shuffle(self.lidar_files, self.label_files, self.calibration_files)
+
+
+
+class AnalyseSimpleDataGenerator(DataProcessor, Sequence):
+    """ Multiprocessing-safe data generator for training, validation or testing, without fancy augmentation """
+
+    def __init__(self, data_reader: DataReader, batch_size: int, lidar_files: List[str], label_files: List[str] = None,
+                 calibration_files: List[str] = None):
+        super(AnalyseSimpleDataGenerator, self).__init__()
+        self.data_reader = data_reader
+        self.batch_size = batch_size
+        self.lidar_files = lidar_files
+        self.label_files = label_files
+        self.calibration_files = calibration_files
+
+        assert (calibration_files is None and label_files is None) or \
+               (calibration_files is not None and label_files is not None)
+
+        if self.calibration_files is not None:
+            assert len(self.calibration_files) == len(self.lidar_files)
+            assert len(self.label_files) == len(self.lidar_files)
+
+    def __len__(self):
+        return len(self.lidar_files) // self.batch_size
+
+    def __getitem__(self, batch_id: int):
+        file_ids = np.arange(batch_id * self.batch_size, self.batch_size * (batch_id + 1))
+        #         print("inside getitem")
+        pillars = []
+        voxels = []
+        occupancy = []
+        position = []
+        size = []
+        angle = []
+        heading = []
+        classification = []
+        pts_input = []
+        gt_boxes3d = []
+
+        save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/original_processor"
+        # Initialize and setup output directory.
+        Converter = PointvizConverter(save_viz_path)
+
+        for i in file_ids:
+            lidar = self.data_reader.read_lidar(self.lidar_files[i])
+
+
+            Converter.compile("transform_sample_{}".format(i), coors=lidar[:,:3], intensity=lidar[:,3])
+
+            # For each file, dividing the space into a x-y grid to create pillars
+            # Voxels are the pillar ids
+            pillars_, voxels_ = self.make_point_pillars(lidar)
+
+            # print(pillars_.shape, voxels_.shape)
+            pillars.append(pillars_)
+            voxels.append(voxels_)
+
+            if self.label_files is not None:
+                label = self.data_reader.read_label(self.label_files[i])
+                R, t = self.data_reader.read_calibration(self.calibration_files[i])
+                # Labels are transformed into the lidar coordinate bounding boxes
+                # Label has 7 values, centroid, dimensions and yaw value.
+                label_transformed = self.transform_labels_into_lidar_coordinates(label, R, t)
+
+                # These definitions can be found in point_pillars.cpp file
+                # We are splitting a 10 dim vector that contains this information.
+                occupancy_, position_, size_, angle_, heading_, classification_ = self.make_ground_truth(
+                    label_transformed)
+
+                occupancy.append(occupancy_)
+                position.append(position_)
+                size.append(size_)
+                angle.append(angle_)
+                heading.append(heading_)
+                classification.append(classification_)
+                pts_input.append(lidar)
+                gt_boxes3d.append(label_transformed)
+
+        pillars = np.concatenate(pillars, axis=0)
+        voxels = np.concatenate(voxels, axis=0)
+
+        if self.label_files is not None:
+            occupancy = np.array(occupancy)
+            position = np.array(position)
+            size = np.array(size)
+            angle = np.array(angle)
+            heading = np.array(heading)
+            classification = np.array(classification)
+            return [pillars, voxels], [occupancy, position, size, angle, heading, classification], [pts_input, gt_boxes3d]
         else:
             return [pillars, voxels]
 

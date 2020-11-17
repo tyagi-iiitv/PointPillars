@@ -8,7 +8,7 @@ class Label3D:
     def __init__(self, classification: str, centroid: np.ndarray, dimension: np.ndarray, yaw: float):
         self.classification = classification
         self.centroid = centroid
-        self.dimension = dimension
+        self.dimension = dimension # hwl
         self.yaw = yaw
 
     def __str__(self):

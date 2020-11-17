@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from config import Parameters
+# from config import Parameters
+from config_v2 import Parameters
 
 
 def build_point_pillar_graph(params: Parameters):

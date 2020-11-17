@@ -1,9 +1,9 @@
 import numpy as np
 import cv2 as cv
 from typing import List
-from config import Parameters
+from config_v2 import Parameters
 from readers import DataReader
-from processors import DataProcessor
+from point_pillars_custom_processors_v2 import DataProcessor
 
 
 class BBox(tuple):
@@ -79,7 +79,8 @@ def generate_bboxes_from_pred(occ, pos, siz, ang, hdg, clf, anchor_dims, occ_thr
         bb_length = np.exp(siz[value][0]) * real_anchors[i][0]
         bb_width = np.exp(siz[value][1]) * real_anchors[i][1]
         bb_height = np.exp(siz[value][2]) * real_anchors[i][2]
-        bb_yaw = -np.arcsin(np.clip(ang[value], -1, 1)) + real_anchors[i][4]
+        bb_yaw = ang[value] + real_anchors[i][4]
+        # bb_yaw = -np.arcsin(np.clip(ang[value], -1, 1)) + real_anchors[i][4]
         bb_heading = np.round(hdg[value])
         bb_cls = np.argmax(clf[value])
         bb_conf = occ[value]
@@ -118,6 +119,7 @@ def generate_bboxes_from_pred_and_np_array(occ, pos, siz, ang, hdg, clf, anchor_
 
     # Get only the boxes where occupancy is greater or equal threshold.
     real_boxes = np.where(occ >= occ_threshold)
+    # print(occ.shape)
     # Get the indices of the occupancy array
     coordinates = list(zip(real_boxes[0], real_boxes[1], real_boxes[2]))
     # Assign anchor dimensions as original bounding box coordinates which will eventually be changed
@@ -137,6 +139,8 @@ def generate_bboxes_from_pred_and_np_array(occ, pos, siz, ang, hdg, clf, anchor_
         real_diag = np.sqrt(np.square(real_anchors[i][0]) + np.square(real_anchors[i][1]))
         real_x = value[0] * Parameters.x_step * Parameters.downscaling_factor + Parameters.x_min
         real_y = value[1] * Parameters.y_step * Parameters.downscaling_factor + Parameters.y_min
+        # print("i: ", i, "\tx: ", real_x, "\ty:", real_y)
+        # print("i: ", i, "\tx: ", value[0], "\ty:", value[1])
         bb_x = pos[value][0] * real_diag + real_x
         bb_y = pos[value][1] * real_diag + real_y
         bb_z = pos[value][2] * real_anchors[i][2] + real_anchors[i][3]
@@ -144,11 +148,11 @@ def generate_bboxes_from_pred_and_np_array(occ, pos, siz, ang, hdg, clf, anchor_
         bb_length = np.exp(siz[value][0]) * real_anchors[i][0]
         bb_width = np.exp(siz[value][1]) * real_anchors[i][1]
         bb_height = np.exp(siz[value][2]) * real_anchors[i][2]
-        bb_yaw = -np.arcsin(np.clip(ang[value], -1, 1)) + real_anchors[i][4]
-        # bb_yaw = np.arcsin(np.clip(ang[value], -1, 1)) + real_anchors[i][4]
-        # bb_yaw = inverse_yaw_element(bb_yaw)
         bb_heading = np.round(hdg[value])
-        # print(bb_heading, bb_yaw)
+        bb_yaw = ang[value] + real_anchors[i][4]
+        # if np.int32(bb_heading) == 0:
+        #     bb_yaw -= np.pi
+
         bb_cls = np.argmax(clf[value])
         bb_conf = occ[value]
         predicted_boxes.append(BBox(bb_x, bb_y, bb_z, bb_length, bb_width, bb_height,

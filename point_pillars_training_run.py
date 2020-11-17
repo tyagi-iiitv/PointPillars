@@ -8,22 +8,23 @@ from config import Parameters
 from loss import PointPillarNetworkLoss
 from network import build_point_pillar_graph
 from processors import SimpleDataGenerator
+# from custom_processors import CustomDataGenerator
 from readers import KittiDataReader
 
 tf.get_logger().setLevel("ERROR")
 
-DATA_ROOT = "../training"  # TODO make main arg
-MODEL_ROOT = "./logs"
+DATA_ROOT = "/media/data3/tjtanaa/kitti_dataset/KITTI/object/training"  # TODO make main arg
+MODEL_ROOT = "./logs_Car_Pedestrian_Original_2"
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 if __name__ == "__main__":
 
     params = Parameters()
 
     pillar_net = build_point_pillar_graph(params)
-    pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+    # pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
 
     loss = PointPillarNetworkLoss(params)
 
@@ -43,8 +44,12 @@ if __name__ == "__main__":
     validation_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files[-validation_len:], label_files[-validation_len:], calibration_files[-validation_len:])
 
     log_dir = MODEL_ROOT
+    # epoch_to_decay = int(
+    #     np.round(params.iters_to_decay / params.batch_size * int(np.ceil(float(len(label_files)) / params.batch_size))))
+
     epoch_to_decay = int(
-        np.round(params.iters_to_decay / params.batch_size * int(np.ceil(float(len(label_files)) / params.batch_size))))
+        np.round(params.iters_to_decay / params.batch_size * int(len(training_gen))))
+
     callbacks = [
         tf.keras.callbacks.TensorBoard(log_dir=log_dir),
         tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(log_dir, "model.h5"),
@@ -59,9 +64,9 @@ if __name__ == "__main__":
                        validation_data = validation_gen,
                        steps_per_epoch=len(training_gen),
                        callbacks=callbacks,
-                       use_multiprocessing=True,
-                       epochs=int(params.total_training_epochs),
-                       workers=6)
+                    #    use_multiprocessing=True,
+                       epochs=int(params.total_training_epochs))
+                    #    workers=6)
     except KeyboardInterrupt:
         model_str = "interrupted_%s.h5" % time.strftime("%Y%m%d-%H%M%S")
         pillar_net.save(os.path.join(log_dir, model_str))

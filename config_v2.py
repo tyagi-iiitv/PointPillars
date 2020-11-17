@@ -45,11 +45,11 @@ class DataParameters:
     classes_map = {"Car":               0,
                "Pedestrian":        1,
                "Person_sitting":    1,
-               "Cyclist":           2,
-               "Truck":             3,
-               "Van":               3,
-               "Tram":              3,
-               "Misc":              3,
+            #    "Cyclist":           2,
+            #    "Truck":             3,
+            #    "Van":               3,
+            #    "Tram":              3,
+            #    "Misc":              3,
                }
 
     nb_classes = len(np.unique(list(classes_map.values())))
@@ -76,20 +76,21 @@ class NetworkParameters:
 
     max_points_per_pillar = 100
     max_pillars = 12000
-    nb_features = 7
+    nb_features = 9
     nb_channels = 64
     downscaling_factor = 2
 
     # length (x), width (y), height (z), z-center, orientation
     anchor_dims = np.array([[3.9, 1.6, 1.56, -1, 0],
-                            [3.9, 1.6, 1.56, -1, 1.5708],
+                            [3.9, 1.6, 1.56, -1, np.pi/2],
                             [0.8, 0.6, 1.73, -0.6, 0],
-                            [0.8, 0.6, 1.73, -0.6, 1.5708],
+                            [0.8, 0.6, 1.73, -0.6, np.pi/2],
                             ], dtype=np.float32).tolist()
     nb_dims = 3
 
     positive_iou_threshold = 0.6
     negative_iou_threshold = 0.3
+    # batch_size = 1
     batch_size = 4
     total_training_epochs = 160
     iters_to_decay = 101040.    # 15 * 4 * ceil(6733. / 4) --> every 15 epochs on 6733 kitti samples, cf. pillar paper

@@ -27,6 +27,8 @@ struct PillarPoint {
     float xc;
     float yc;
     float zc;
+    float xp;
+    float yp;
 };
 
 pybind11::tuple createPillars(pybind11::array_t<float> points,
@@ -64,13 +66,15 @@ pybind11::tuple createPillars(pybind11::array_t<float> points,
         auto yIndex = static_cast<uint32_t>(std::floor((points.at(i, 1) - yMin) / yStep));
 
         PillarPoint p = {
-            points.at(i, 0),
-            points.at(i, 1),
-            points.at(i, 2),
-            points.at(i, 3),
-            0,
-            0,
-            0,
+            points.at(i, 0),    // x
+            points.at(i, 1),    // y
+            points.at(i, 2),    // z
+            points.at(i, 3),    // intensity
+            0,                  // xc
+            0,                  // yc
+            0,                  // zc
+            0,                  // xp
+            0,                  // yp
         };
 
         map[{xIndex, yIndex}].emplace_back(p);
@@ -79,7 +83,7 @@ pybind11::tuple createPillars(pybind11::array_t<float> points,
     pybind11::array_t<float> tensor;
     pybind11::array_t<int> indices;
 
-    tensor.resize({1, maxPillars, maxPointsPerPillar, 7});
+    tensor.resize({1, maxPillars, maxPointsPerPillar, 9});
     indices.resize({1, maxPillars, 3});
 
     int pillarId = 0;
@@ -124,13 +128,23 @@ pybind11::tuple createPillars(pybind11::array_t<float> points,
                 break;
             }
 
-            tensor.mutable_at(0, pillarId, pointId, 0) = p.x - (xIndex * xStep + xMin);
-            tensor.mutable_at(0, pillarId, pointId, 1) = p.y - (yIndex * yStep + yMin);
-            tensor.mutable_at(0, pillarId, pointId, 2) = p.z - zMid;
+            // tensor.mutable_at(0, pillarId, pointId, 0) = p.x - (xIndex * xStep + xMin);
+            // tensor.mutable_at(0, pillarId, pointId, 1) = p.y - (yIndex * yStep + yMin);
+            // tensor.mutable_at(0, pillarId, pointId, 2) = p.z - zMid;
+            // tensor.mutable_at(0, pillarId, pointId, 3) = p.intensity;
+            // tensor.mutable_at(0, pillarId, pointId, 4) = p.xc;
+            // tensor.mutable_at(0, pillarId, pointId, 5) = p.yc;
+            // tensor.mutable_at(0, pillarId, pointId, 6) = p.zc;
+
+            tensor.mutable_at(0, pillarId, pointId, 0) = p.x;
+            tensor.mutable_at(0, pillarId, pointId, 1) = p.y;
+            tensor.mutable_at(0, pillarId, pointId, 2) = p.z;
             tensor.mutable_at(0, pillarId, pointId, 3) = p.intensity;
             tensor.mutable_at(0, pillarId, pointId, 4) = p.xc;
             tensor.mutable_at(0, pillarId, pointId, 5) = p.yc;
             tensor.mutable_at(0, pillarId, pointId, 6) = p.zc;
+            tensor.mutable_at(0, pillarId, pointId, 7) = p.x - (xIndex * xStep + xMin);
+            tensor.mutable_at(0, pillarId, pointId, 8) = p.y - (yIndex * yStep + yMin);
 
             pointId++;
         }
@@ -462,6 +476,8 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
         float maxIou = 0;
         BoundingBox3D bestAnchor = {};
         int bestAnchorId = 0;
+        int bestAnchorXId = 0;
+        int bestAnchorYId = 0;
         for (int xId = xStart; xId < xEnd; xId++) // Iterate through every box within search diameter
             // In our example case, from 3 till 8
         {
@@ -487,6 +503,14 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
                         maxIou = iouOverlap;
                         bestAnchor = anchorBox;
                         bestAnchorId = anchorCount;
+                        bestAnchorXId = xId;
+                        bestAnchorYId = yId;
+                        // if(printTime){
+                        //     if(anchorCount == 3){
+                        //         py::print("\nIoU old: " +std::to_string(iouOverlap) + " new: " + std::to_string(maxIou));
+                        //     }
+                        // }
+                        
                     }
 
                     if (iouOverlap > positiveThreshold) // Accept the Anchor. Add the anchor details to the tensor.
@@ -503,7 +527,8 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
                         tensor.mutable_at(objectCount, xId, yId, anchorCount, 5) = std::log(labelBox.width / anchorBox.width);
                         tensor.mutable_at(objectCount, xId, yId, anchorCount, 6) = std::log(labelBox.height / anchorBox.height);
 
-                        tensor.mutable_at(objectCount, xId, yId, anchorCount, 7) = std::sin(labelBox.yaw - anchorBox.yaw); //delta yaw
+                        // tensor.mutable_at(objectCount, xId, yId, anchorCount, 7) = std::sin(labelBox.yaw - anchorBox.yaw); //delta yaw
+                        tensor.mutable_at(objectCount, xId, yId, anchorCount, 7) = labelBox.yaw - anchorBox.yaw; //delta yaw
                         if (labelBox.yaw > 0) // Is yaw > 0
                         {
                             tensor.mutable_at(objectCount, xId, yId, anchorCount, 8) = 1; 
@@ -534,16 +559,22 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
             // If none of the anchors passed the threshold, then we place the best anchor details for that object. 
         {
             negCnt++;
-            if (printTime)
-            {
-                // std::cout << "\nThere was no sufficiently overlapping anchor anywhere for object " << objectCount << std::endl;
-                // py::print("There was no sufficiently overlapping anchor anywhere for object " +std::to_string(objectCount));
-                // std::cout << "Best IOU was " << maxIou << ". Adding the best location regardless of threshold." << std::endl;
-                // py::print("Best IOU was "+std::to_string(maxIou)+" Adding the best location regardless of threshold");
-            }
+            // if (printTime)
+            // {
+                // // std::cout << "\nThere was no sufficiently overlapping anchor anywhere for object " << objectCount << std::endl;
+                // py::print("\nThere was no sufficiently overlapping anchor anywhere for object " +std::to_string(objectCount));
+                // // std::cout << "Best IOU was " << maxIou << ". Adding the best location regardless of threshold." << std::endl;
+                // py::print("\nBest IOU was "+std::to_string(maxIou)+" Adding the best location regardless of threshold");
+                // py::print("\nBest IOU.x was "+std::to_string(bestAnchor.x)+" ");
+                // py::print("\nBest IOU.y was "+std::to_string(bestAnchor.y)+" ");
+                // py::print("\nBest IOU.z was "+std::to_string(bestAnchor.z)+" ");
+                // py::print("\nBest IOU.ry was "+std::to_string(bestAnchor.yaw)+" ");
+            // }
 
-            const auto xId = static_cast<int>(std::floor((labelBox.x - xMin) / (xStep * downscalingFactor)));
-            const auto yId = static_cast<int>(std::floor((labelBox.y - yMin) / (yStep * downscalingFactor)));
+            const auto xId = bestAnchorXId;
+            const auto yId = bestAnchorYId;
+            // const auto xId = static_cast<int>(std::floor((labelBox.x - xMin) / (xStep * downscalingFactor)));
+            // const auto yId = static_cast<int>(std::floor((labelBox.y - yMin) / (yStep * downscalingFactor)));
             const float diag = std::sqrt(std::pow(bestAnchor.width, 2) + std::pow(bestAnchor.length, 2));
 
             tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 0) = 1;
@@ -556,7 +587,8 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
             tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 5) = std::log(labelBox.width / bestAnchor.width);
             tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 6) = std::log(labelBox.height / bestAnchor.height);
 
-            tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 7) = std::sin(labelBox.yaw - bestAnchor.yaw);
+            // tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 7) = std::sin(labelBox.yaw - bestAnchor.yaw);
+            tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 7) = labelBox.yaw - bestAnchor.yaw;
             if (labelBox.yaw > 0)
             {
                 tensor.mutable_at(objectCount, xId, yId, bestAnchorId, 8) = 1;
@@ -589,9 +621,14 @@ std::tuple<pybind11::array_t<float>, int, int> createPillarsTarget(const pybind1
     return std::make_tuple(tensor, posCnt, negCnt);
 }
 
+float cmath_sin(float value){
+    return std::sin(value);
+}
 
-PYBIND11_MODULE(point_pillars, m)
+
+PYBIND11_MODULE(point_pillars_v2, m)
 {
     m.def("createPillars", &createPillars, "Runs function to create point pillars input tensors");
     m.def("createPillarsTarget", &createPillarsTarget, "Runs function to create point pillars output ground truth");
+    m.def("cmath_sin", &cmath_sin, "Runs function to compute sine");
 }

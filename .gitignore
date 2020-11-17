@@ -8,3 +8,9 @@ cmake_example.egg-info/
 dist/
 logs/
 point_pillars.egg-info/
+logs_*/
+.vscode/
+.ipynb_checkpoints/
+archive/
+visualization/
+logs.zip
