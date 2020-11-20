@@ -31,14 +31,14 @@ if __name__ == "__main__":
     # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/custom_prediction_multiprocessing"
     # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/input_coordinate_analysis_point_pillar_v2_gt_only"
     # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/input_coordinate_analysis_point_pillar_v2_labels_only"
-    save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/input_coordinate_analysis_point_pillar_v2_gt_and_labels"
+    save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/pedestrian_input_coordinate_analysis_point_pillar_v2_gt_and_labels"
     # Initialize and setup output directory.
     Converter = PointvizConverter(save_viz_path)
 
     gt_database_dir = os.path.join(DATA_ROOT, "gt_database")
 
     validation_gen = AnalyseCustomDataGenerator(batch_size=params.batch_size,  root_dir=DATA_ROOT, 
-            npoints=16384, split='val',random_select=False,  classes=list(params.classes_map.keys()))
+            npoints=16384, split='train_val_test',random_select=False,  classes=list(params.classes_map.keys()))
 
     for batch_idx in range(0,20):
         [pillars, voxels], [occupancy_, position_, size_, angle_, heading_, classification_], [pts_input, gt_boxes3d, sample] = validation_gen[batch_idx]

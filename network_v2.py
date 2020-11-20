@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from config import Parameters
+# from config import Parameters
+from config_v2 import Parameters
 
 
 def build_point_pillar_graph(params: Parameters):
@@ -36,9 +37,8 @@ def build_point_pillar_graph(params: Parameters):
         corrected_indices = input_indices
 
     # pillars
-    x = tf.keras.layers.Conv2D(nb_channels, (1, 1), activation='linear', use_bias=False, name="pillars/conv2d")(input_pillars)
-    x = tf.keras.layers.BatchNormalization(name="pillars/batchnorm", fused=True, epsilon=1e-3, momentum=0.99)(x)
-    x = tf.keras.layers.Activation("relu", name="pillars/relu")(x)
+    x = tf.keras.layers.Conv2D(nb_channels, (1, 1), activation='relu', use_bias=False, name="pillars/conv2d")(input_pillars)
+    x = tf.keras.layers.BatchNormalization(name="pillars/batchnorm", fused=True, epsilon=1e-3, momentum=0.01)(x)
     x = tf.keras.layers.MaxPool2D((1, max_points), name="pillars/maxpooling2d")(x)
 
     if tf.keras.backend.image_data_format() == "channels_first":
@@ -53,13 +53,15 @@ def build_point_pillar_graph(params: Parameters):
 
     # 2d cnn backbone
 
+    # # Block1(S, 4, C)
     # Block1(S, 4, C)
     x = pillars
     for n in range(4):
         S = (2, 2) if n == 0 else (1, 1)
+    #         # S = (1, 1) # pedestrian
         x = tf.keras.layers.Conv2D(nb_channels, (3, 3), strides=S, padding="same", activation="relu",
                                    name="cnn/block1/conv2d%i" % n)(x)
-        x = tf.keras.layers.BatchNormalization(name="cnn/block1/bn%i" % n, fused=True)(x)
+        x = tf.keras.layers.BatchNormalization(name="cnn/block1/bn%i" % n, fused=True, epsilon=1e-3, momentum=0.01)(x)
     x1 = x
 
     # Block2(2S, 6, 2C)
@@ -67,31 +69,32 @@ def build_point_pillar_graph(params: Parameters):
         S = (2, 2) if n == 0 else (1, 1)
         x = tf.keras.layers.Conv2D(2 * nb_channels, (3, 3), strides=S, padding="same", activation="relu",
                                    name="cnn/block2/conv2d%i" % n)(x)
-        x = tf.keras.layers.BatchNormalization(name="cnn/block2/bn%i" % n, fused=True)(x)
+        x = tf.keras.layers.BatchNormalization(name="cnn/block2/bn%i" % n, fused=True, epsilon=1e-3, momentum=0.01)(x)
     x2 = x
 
     # Block3(4S, 6, 4C)
     for n in range(6):
         S = (2, 2) if n == 0 else (1, 1)
-        x = tf.keras.layers.Conv2D(2 * nb_channels, (3, 3), strides=S, padding="same", activation="relu",
+        x = tf.keras.layers.Conv2D(4 * nb_channels, (3, 3), strides=S, padding="same", activation="relu",
                                    name="cnn/block3/conv2d%i" % n)(x)
-        x = tf.keras.layers.BatchNormalization(name="cnn/block3/bn%i" % n, fused=True)(x)
+        x = tf.keras.layers.BatchNormalization(name="cnn/block3/bn%i" % n, fused=True, epsilon=1e-3, momentum=0.01)(x)
     x3 = x
 
+
     # Up1 (S, S, 2C)
-    up1 = tf.keras.layers.Conv2DTranspose(2 * nb_channels, (3, 3), strides=(1, 1), padding="same", activation="relu",
+    up1 = tf.keras.layers.Conv2DTranspose(2 * nb_channels, (1, 1), strides=(1, 1), padding="same", activation="relu",
                                           name="cnn/up1/conv2dt")(x1)
-    up1 = tf.keras.layers.BatchNormalization(name="cnn/up1/bn", fused=True)(up1)
+    up1 = tf.keras.layers.BatchNormalization(name="cnn/up1/bn", fused=True, epsilon=1e-3, momentum=0.01)(up1)
 
     # Up2 (2S, S, 2C)
-    up2 = tf.keras.layers.Conv2DTranspose(2 * nb_channels, (3, 3), strides=(2, 2), padding="same", activation="relu",
+    up2 = tf.keras.layers.Conv2DTranspose(2 * nb_channels, (2, 2), strides=(2, 2), padding="same", activation="relu",
                                           name="cnn/up2/conv2dt")(x2)
-    up2 = tf.keras.layers.BatchNormalization(name="cnn/up2/bn", fused=True)(up2)
+    up2 = tf.keras.layers.BatchNormalization(name="cnn/up2/bn", fused=True, epsilon=1e-3, momentum=0.01)(up2)
 
     # Up3 (4S, S, 2C)
-    up3 = tf.keras.layers.Conv2DTranspose(2 * nb_channels, (3, 3), strides=(4, 4), padding="same", activation="relu",
+    up3 = tf.keras.layers.Conv2DTranspose(2 * nb_channels, (4, 4), strides=(4, 4), padding="same", activation="relu",
                                           name="cnn/up3/conv2dt")(x3)
-    up3 = tf.keras.layers.BatchNormalization(name="cnn/up3/bn", fused=True)(up3)
+    up3 = tf.keras.layers.BatchNormalization(name="cnn/up3/bn", fused=True, epsilon=1e-3, momentum=0.01)(up3)
 
     # Concat
     concat = tf.keras.layers.Concatenate(name="cnn/concatenate")([up1, up2, up3])
@@ -109,10 +112,10 @@ def build_point_pillar_graph(params: Parameters):
 
     heading = tf.keras.layers.Conv2D(nb_anchors, (1, 1), name="heading/conv2d", activation="sigmoid")(concat)
 
-    clf = tf.keras.layers.Conv2D(nb_anchors * nb_classes, (1, 1), name="clf/conv2d")(concat)
-    clf = tf.keras.layers.Reshape(tuple(i // 2 for i in image_size) + (nb_anchors, nb_classes), name="clf/reshape")(clf)
+    # clf = tf.keras.layers.Conv2D(nb_anchors * nb_classes, (1, 1), name="clf/conv2d")(concat)
+    # clf = tf.keras.layers.Reshape(tuple(i // 2 for i in image_size) + (nb_anchors, nb_classes), name="clf/reshape")(clf)
 
-    pillar_net = tf.keras.models.Model([input_pillars, input_indices], [occ, loc, size, angle, heading, clf])
+    pillar_net = tf.keras.models.Model([input_pillars, input_indices], [occ, loc, size, angle, heading])
 #     print(pillar_net.summary())
 
     return pillar_net

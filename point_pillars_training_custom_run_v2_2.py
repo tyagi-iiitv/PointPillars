@@ -5,12 +5,10 @@ import tensorflow as tf
 from glob import glob
 
 # from config import Parameters
-from config_v2 import Parameters
-from loss import PointPillarNetworkLoss
-from network import build_point_pillar_graph
-# from processors import SimpleDataGenerator
-# from custom_processors import CustomDataGenerator
-from point_pillars_custom_processors_v2 import CustomDataGenerator
+from config_v2_2 import Parameters
+from loss_v2_2 import PointPillarNetworkLoss
+from network_v2_2 import build_point_pillar_graph
+from point_pillars_custom_processors_v2_2 import CustomDataGenerator
 from readers import KittiDataReader
 
 # from point_viz.converter import PointvizConverter
@@ -21,33 +19,33 @@ tf.get_logger().setLevel("ERROR")
 DATA_ROOT = "/media/data3/tjtanaa/kitti_dataset/"  # TODO make main arg
 # MODEL_ROOT = "./logs_Car_Pedestrian_Custom_Dataset_single_process"
 # MODEL_ROOT = "./logs_Car_Pedestrian_Custom_Dataset_No_Early_Stopping_wo_Aug_wo_val"
-MODEL_ROOT = "./logs_Pedestrian_Custom_Dataset_No_Early_Stopping_wo_Aug_wo_val"
+MODEL_ROOT = "./logs_Car_Custom_Dataset_No_Early_Stopping_wo_Aug_wo_val_new_network"
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 if __name__ == "__main__":
-
     params = Parameters()
 
     pillar_net = build_point_pillar_graph(params)
     # pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
-
+    pillar_net.summary()
+    # exit()
     loss = PointPillarNetworkLoss(params)
 
     optimizer = tf.keras.optimizers.Adam(lr=params.learning_rate, decay=params.decay_rate)
 
     pillar_net.compile(optimizer, loss=loss.losses())
 
-    # gt_database_dir = os.path.join(DATA_ROOT, "gt_database")
-    gt_database_dir = None
+    gt_database_dir = os.path.join(DATA_ROOT, "gt_database")
+    # gt_database_dir = None
 
     training_gen = CustomDataGenerator(batch_size=params.batch_size,root_dir = DATA_ROOT,
                     npoints=20000, split='train_val',   classes=list(params.classes_map.keys()), 
-                    random_select=True, gt_database_dir=None, aug_hard_ratio=0.7)
+                    random_select=True, gt_database_dir=gt_database_dir, aug_hard_ratio=0.7)
 
-    # validation_gen = CustomDataGenerator(batch_size=params.batch_size,  root_dir=DATA_ROOT, 
-    #         npoints=20000, split='val',   classes=list(params.classes_map.keys()))
+    validation_gen = CustomDataGenerator(batch_size=params.batch_size,  root_dir=DATA_ROOT, 
+            npoints=20000, split='train_val_test', classes=list(params.classes_map.keys()))
 
 
     # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/custom_processor"
@@ -68,7 +66,7 @@ if __name__ == "__main__":
     callbacks = [
         tf.keras.callbacks.TensorBoard(log_dir=log_dir),
         tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(log_dir, "model.h5"),
-                                           monitor='loss', save_best_only=True),
+                                           monitor='val_loss', save_best_only=True),
         tf.keras.callbacks.LearningRateScheduler(
             lambda epoch, lr: lr * 0.8 if ((epoch % epoch_to_decay == 0) and (epoch != 0)) else lr, verbose=True),
         # tf.keras.callbacks.EarlyStopping(patience=20, monitor='val_loss'),
@@ -76,10 +74,11 @@ if __name__ == "__main__":
 
     try:
         pillar_net.fit(training_gen,
-                    #    validation_data = validation_gen,
+                       validation_data = validation_gen,
                        steps_per_epoch=len(training_gen),
                        callbacks=callbacks,
                        use_multiprocessing=True,
+                    #    max_queue_size = 16,
                        epochs=int(params.total_training_epochs),
                        workers=6)
     except KeyboardInterrupt:

@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow.python.keras import backend as K
-from config_v2 import Parameters
+from config_v2_2 import Parameters
 
 
 class PointPillarNetworkLoss:
@@ -14,10 +14,10 @@ class PointPillarNetworkLoss:
         self.size_weight = float(params.size_weight)
         self.angle_weight = float(params.angle_weight)
         self.heading_weight = float(params.heading_weight)
-        self.class_weight = float(params.class_weight)
+        # self.class_weight = float(params.class_weight)
 
     def losses(self):
-        return [self.focal_loss, self.loc_loss, self.size_loss, self.angle_loss, self.heading_loss, self.class_loss]
+        return [self.focal_loss, self.loc_loss, self.size_loss, self.angle_loss, self.heading_loss]
 
     def focal_loss(self, y_true: tf.Tensor, y_pred: tf.Tensor):
         """ y_true value from occ in {-1, 0, 1}, i.e. {bad match, neg box, pos box} """
@@ -72,7 +72,7 @@ class PointPillarNetworkLoss:
         return rad_tg_encoding, rad_pred_encoding
 
     def angle_loss(self, y_true: tf.Tensor, y_pred: tf.Tensor):
-        y_true, y_pred = self.add_sin_difference(y_true, y_pred, self.angle_weight)
+        y_true, y_pred = self.add_sin_difference(y_true, y_pred)
         loss = tf.compat.v1.losses.huber_loss(y_true,
                                     y_pred,
                                     delta=3.0,
@@ -85,9 +85,3 @@ class PointPillarNetworkLoss:
         loss = K.binary_crossentropy(y_true, y_pred)
         masked_loss = tf.boolean_mask(loss, self.mask)
         return self.heading_weight * tf.reduce_mean(masked_loss)
-
-    def class_loss(self, y_true: tf.Tensor, y_pred: tf.Tensor):
-        return 0 # for now since we are only learning one class, the class label is equivalent to the occupancy
-        # loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
-        # masked_loss = tf.boolean_mask(loss, self.mask)
-        # return self.class_weight * tf.reduce_mean(masked_loss)
