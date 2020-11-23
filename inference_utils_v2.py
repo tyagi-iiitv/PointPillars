@@ -96,14 +96,12 @@ def limit_period(val, offset=0.5, period=np.pi):
     return val - np.floor(val / period + offset) * period
 
 def inverse_yaw_element(bb_yaw):
-
-
     bb_yaw -= np.pi / 2
     while bb_yaw > np.pi:
-        print("larger than pi")
+        # print("larger than pi")
         bb_yaw -= (np.pi * 2)
     while bb_yaw < -np.pi:
-        print("smaller than -pi")
+        # print("smaller than -pi")
         bb_yaw += (np.pi * 2)
 
     return bb_yaw
@@ -162,6 +160,19 @@ def generate_bboxes_from_pred_and_np_array(occ, pos, siz, ang, hdg, clf, anchor_
 
     return predicted_boxes, np.array(predicted_boxes_list)
 
+def convert_boxes_to_list(set_boxes):
+    # (B, N)
+    batch_predicted_boxes_list = []
+    for batch_idx in range(len(set_boxes)):
+        predicted_boxes_list = []
+
+        for box in set_boxes[batch_idx]:
+
+            predicted_boxes_list.append([box.x, box.y, box.z, box.length, box.width, box.height,
+                                            box.yaw, box.heading, box.cls, box.conf])
+
+        batch_predicted_boxes_list.append(predicted_boxes_list)
+    return batch_predicted_boxes_list
 
 class GroundTruthGenerator(DataProcessor):
     """ Multiprocessing-safe data generator for training, validation or testing, without fancy augmentation """

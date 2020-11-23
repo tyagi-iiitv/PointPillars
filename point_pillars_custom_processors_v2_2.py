@@ -70,9 +70,6 @@ class DataProcessor(Parameters):
         # filter labels by classes (cars, pedestrians and Trams)
         # Label has 4 properties (Classification (0th index of labels file),
         # centroid coordinates, dimensions, yaw)
-        # labels = list(filter(lambda x: x.classification in self.classes, labels))
-
-
 
         if len(gt_boxes_3d) == 0:
             pX, pY = int(self.Xn / self.downscaling_factor), int(self.Yn / self.downscaling_factor)
@@ -82,12 +79,6 @@ class DataProcessor(Parameters):
                    np.zeros((pX, pY, a), dtype='float32'), np.zeros((pX, pY, a, self.nb_classes), dtype='float64')
 
         # For each label file, generate these properties except for the Don't care class
-
-        # target_positions = np.array([label.centroid for label in labels], dtype=np.float32)
-        # target_dimension = np.array([label.dimension for label in labels], dtype=np.float32)
-        # target_yaw = np.array([label.yaw for label in labels], dtype=np.float32)
-        # target_class = np.array([self.classes[label.classification] for label in labels], dtype=np.int32)
-
         target_positions = gt_boxes_3d[:,:3]
         target_dimension = gt_boxes_3d[:,3:6] # don't have to translate again
         target_yaw = gt_boxes_3d[:, 6]
@@ -125,13 +116,11 @@ class DataProcessor(Parameters):
         self.neg_cnt += neg
 
         # return a merged target view for all objects in the ground truth and get categorical labels
-        # print("target.shape: ", target.shape)
+
         sel = select_best_anchors(target)
-        # print("self.shape: ", sel[...,0].shape)
         ohe = tf.keras.utils.to_categorical(sel[..., 9], num_classes=self.nb_classes, dtype='float64')
         # print("self.shape: ", sel[...,0].shape)
-        # print("ohe.shape: ", ohe.shape)
-        # print("sel[8].shape: ",sel[..., 8].shape)
+
 
         return sel[..., 0], sel[..., 1:4], sel[..., 4:7], sel[..., 7], sel[..., 8], ohe
 
@@ -149,11 +138,8 @@ class CustomDataGenerator(DataProcessor, Sequence, PCKittiAugmentedDataset):
             random_select=random_select,    gt_database_dir=gt_database_dir, 
             aug_hard_ratio=aug_hard_ratio, **kwargs
         )
-        # self.data_reader = data_reader
         self.batch_size = batch_size
         self.sample_id_list=self.get_sample_id_list()
-        # self.split = split
-        # print("CustomDataGenerator: " ,self.split)
 
 
     def get_sample(self, index):
@@ -165,7 +151,6 @@ class CustomDataGenerator(DataProcessor, Sequence, PCKittiAugmentedDataset):
 
     def __getitem__(self, batch_id: int):
         file_ids = range(batch_id * self.batch_size, self.batch_size * (batch_id + 1))
-        #         print("inside getitem")
         pillars = []
         voxels = []
         occupancy = []
@@ -229,9 +214,7 @@ class CustomDataGenerator(DataProcessor, Sequence, PCKittiAugmentedDataset):
             return [pillars, voxels]
 
     def on_epoch_end(self):
-        #         print("inside epoch")
         if self.split=='train' or self.split =='val':
-            # pass
             self.sample_id_list=shuffle(self.sample_id_list)
 
 
@@ -251,9 +234,6 @@ class AnalyseCustomDataGenerator(CustomDataGenerator):
         # self.data_reader = data_reader
         self.batch_size = batch_size
         self.sample_id_list=self.get_sample_id_list()
-        # self.split = split
-        # self.split = split
-        # print("AnalyseCustomDataGenerator: " ,self.split)
 
 
     def _get_sample(self, index):
@@ -265,7 +245,6 @@ class AnalyseCustomDataGenerator(CustomDataGenerator):
 
     def __getitem__(self, batch_id: int):
         file_ids = range(batch_id * self.batch_size, self.batch_size * (batch_id + 1))
-        #         print("inside getitem")
         pillars = []
         voxels = []
         occupancy = []
@@ -279,23 +258,15 @@ class AnalyseCustomDataGenerator(CustomDataGenerator):
         gt_boxes3d_ = []
         sample_ = []
 
-        # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/custom_processor"
-        # # Initialize and setup output directory.
-        # Converter = PointvizConverter(save_viz_path)
-
         for i in file_ids:
-            # print(i)
-            # print(type(i))
             sample = self._get_sample(i)
             # For each file, dividing the space into a x-y grid to create pillars
             pts_lidar = sample['calib'].rect_to_lidar(sample['pts_rect'])
-            # print(pts_lidar.shape)
 
             pts_input = np.concatenate((pts_lidar, sample['pts_features']), axis=1)  # (N, C) 
 
             gt_boxes3d_xyz = sample['calib'].rect_to_lidar(sample['gt_boxes3d'][:,:3])
 
-            # print(gt_boxes3d_xyz.shape)
             
             gt_boxes3d = np.concatenate((
                 gt_boxes3d_xyz[:,0,np.newaxis],   # 0 x
@@ -306,44 +277,17 @@ class AnalyseCustomDataGenerator(CustomDataGenerator):
                 sample['gt_boxes3d'][:,3,np.newaxis],   # 5 h # same as the original label
                 -sample['gt_boxes3d'][:,6,np.newaxis],   # 6 ry
             ), axis=1)
-
-            # print(type(gt_boxes3d))
-            # gt_boxes3d = self.limit_yaw(gt_boxes3d)
-
-            # bbox_params = self.convert_labels_into_point_viz_format(gt_boxes3d)
-            # print(bbox_params.shape)
-            # Converter.compile("custom_sample_{}".format(i), coors=pts_input[:,:3], intensity=pts_input[:,3],
-            #                 bbox_params=bbox_params)
-                
-            
-            # exit()
-
-            # print(pts_input.shape)
             # Voxels are the pillar ids
             pillars_, voxels_ = self.make_point_pillars(pts_input)
-
-            # print(pillars_.shape, voxels_.shape)
-            # for i in range(10):
-            #     print(pillars_[0,0,i,:])
-            # print(np.sum(pillars_ > 0))
-            # exit()
 
             pillars.append(pillars_)
             voxels.append(voxels_)
 
-            # print(sample['gt_cls_type_list'])
-            # print("split: ", self.split)
             if self.split=='train' or self.split =='val':
-                # print(len(gt_boxes3d), ", ", len(sample['gt_cls_type_list']))
                 if (len(gt_boxes3d) == 0):
                     print("file id: ", i, " has zero gt label")
                 occupancy_, position_, size_, angle_, heading_, classification_ = self.make_ground_truth(
                     gt_boxes3d, sample['gt_cls_type_list'])
-                # print(len(a))
-                # if 
-
-                # print(occupancy_.shape, position_.shape, size_.shape, angle_.shape, heading_.shape, classification_.shape)
-
 
                 occupancy.append(occupancy_)
                 position.append(position_)
@@ -355,8 +299,6 @@ class AnalyseCustomDataGenerator(CustomDataGenerator):
                 sample_.append(sample)
                 gt_boxes3d_.append(gt_boxes3d)
                 pts_input_.append(pts_input)
-
-            # exit()
 
         pillars = np.concatenate(pillars, axis=0)
         voxels = np.concatenate(voxels, axis=0)
