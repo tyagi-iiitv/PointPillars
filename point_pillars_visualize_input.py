@@ -2,12 +2,9 @@ import os
 from glob import glob
 import numpy as np
 import tensorflow as tf
-# from processors import SimpleDataGenerator
-# from custom_processors import CustomDataGenerator, AnalyseCustomDataGenerator
 from point_pillars_custom_processors_v2 import CustomDataGenerator, AnalyseCustomDataGenerator
 from inference_utils_v2 import generate_bboxes_from_pred, GroundTruthGenerator, focal_loss_checker
 from inference_utils_v2 import rotational_nms, generate_bboxes_from_pred_and_np_array
-from readers import KittiDataReader
 from config_v2 import Parameters
 from network import build_point_pillar_graph
 

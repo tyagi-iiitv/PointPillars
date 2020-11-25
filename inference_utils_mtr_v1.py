@@ -1,8 +1,8 @@
 import numpy as np
 import cv2 as cv
 from typing import List
-from config_v2 import Parameters
-from point_pillars_custom_processors_v2 import DataProcessor
+from config_mtr_v1 import Parameters
+from mtr_processors_v1 import DataProcessor
 
 
 class BBox(tuple):
@@ -43,7 +43,7 @@ def rotational_nms(set_boxes, confidences, occ_threshold=0.7, nms_iou_thr=0.5):
     for boxes, confs in zip(set_boxes, confidences):
         assert len(boxes) == len(confs)
         indices = cv.dnn.NMSBoxesRotated(boxes, confs, occ_threshold, nms_iou_thr)
-        print(indices)
+        # print(indices)
         indices = indices.reshape(len(indices)).tolist()
         nms_boxes.append([boxes[i] for i in indices])
     return nms_boxes

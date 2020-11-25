@@ -19,13 +19,15 @@ tf.get_logger().setLevel("ERROR")
 DATA_ROOT = "/media/data3/tjtanaa/kitti_dataset/"  # TODO make main arg
 # MODEL_ROOT = "./logs_Car_Pedestrian_Custom_Dataset_single_process"
 # MODEL_ROOT = "./logs_Car_Pedestrian_Custom_Dataset_No_Early_Stopping_wo_Aug_wo_val"
-MODEL_ROOT = "./logs_Car_Custom_Dataset_No_Early_Stopping_wo_Aug_wo_val_new_network"
+MODEL_ROOT = "./logs_Car_Custom_Dataset_No_Early_Stopping_Aug_val_new_network_multigpu"
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 if __name__ == "__main__":
     params = Parameters()
+
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
 
     pillar_net = build_point_pillar_graph(params)
     # pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
@@ -37,15 +39,34 @@ if __name__ == "__main__":
 
     pillar_net.compile(optimizer, loss=loss.losses())
 
+
+    # loss = PointPillarNetworkLoss(params)
+
+    # optimizer = tf.keras.optimizers.Adam(lr=params.learning_rate, decay=params.decay_rate)
+
+    # if len(gpus)>1:     
+    #     strategy = tf.distribute.MirroredStrategy(cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())
+    #     with strategy.scope():
+    #         pillar_net = build_point_pillar_graph(params)
+    #         # pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+    #         pillar_net.compile(optimizer, loss=loss.losses())
+    # else:
+    #     pillar_net = build_point_pillar_graph(params)
+    #     # pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+    #     pillar_net.compile(optimizer, loss=loss.losses())
+
+    # pillar_net.summary()
+
+
     gt_database_dir = os.path.join(DATA_ROOT, "gt_database")
     # gt_database_dir = None
 
     training_gen = CustomDataGenerator(batch_size=params.batch_size,root_dir = DATA_ROOT,
-                    npoints=20000, split='train_val',   classes=list(params.classes_map.keys()), 
+                    npoints=20000, split='train',   classes=list(params.classes_map.keys()), 
                     random_select=True, gt_database_dir=gt_database_dir, aug_hard_ratio=0.7)
 
     validation_gen = CustomDataGenerator(batch_size=params.batch_size,  root_dir=DATA_ROOT, 
-            npoints=20000, split='train_val_test', classes=list(params.classes_map.keys()))
+            npoints=20000, split='val', classes=list(params.classes_map.keys()))
 
 
     # save_viz_path = "/home/tan/tjtanaa/PointPillars/visualization/custom_processor"
@@ -78,7 +99,7 @@ if __name__ == "__main__":
                        steps_per_epoch=len(training_gen),
                        callbacks=callbacks,
                        use_multiprocessing=True,
-                    #    max_queue_size = 16,
+                       max_queue_size = 16,
                        epochs=int(params.total_training_epochs),
                        workers=6)
     except KeyboardInterrupt:

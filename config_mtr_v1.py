@@ -2,18 +2,18 @@ import numpy as np
 
 
 class GridParameters:
-    x_min = 0.0
-    x_max = 80.64
-    x_step = 0.16
+    x_min = -10.08
+    x_max = 10.08
+    x_step = 0.04
 
-    y_min = -40.32
-    y_max = 40.32
-    y_step = 0.16
+    y_min = -10.08 #-5
+    y_max = 10.08 #7.5
+    y_step = 0.04
 
     # z_min = -1.0
     # z_max = 3.0
-    z_min = -3.0
-    z_max = 1.0
+    z_min = -1.0
+    z_max = 6.0
 
     # derived parameters
     Xn_f = float(x_max - x_min) / x_step
@@ -56,10 +56,10 @@ class DataParameters:
 
     # for Car only
     map_classes = {
-        0: "Car"
+        0: "pedestrian"
     }
 
-    classes_map = {"Car":               0
+    classes_map = {"pedestrian":               0
                }
 
     # # for Pedestrian only
@@ -109,22 +109,25 @@ class NetworkParameters:
     #                         ], dtype=np.float32).tolist()
 
     # for car only
-    anchor_dims = np.array([[3.9, 1.6, 1.56, -1, 0],
-                            [3.9, 1.6, 1.56, -1, np.pi/2]], dtype=np.float32).tolist()
+    # anchor_dims = np.array([[3.9, 1.6, 1.56, -1, 0],
+    #                         [3.9, 1.6, 1.56, -1, np.pi/2]], dtype=np.float32).tolist()
 
     # for pedestrian only
-    # anchor_dims = np.array([[0.8, 0.6, 1.73, -0.6, 0],
-    #                         [0.8, 0.6, 1.73, -0.6, np.pi/2],
-    #                         ], dtype=np.float32).tolist()
+    anchor_dims = np.array([
+                            [0.62, 0.56, 0.7, 1.8, 0],
+                            [0.62, 0.56, 0.7, 1.8, np.pi/2],
+                            [0.62, 0.56, 1.5, 1.63646424, 0],
+                            [0.62, 0.56, 1.5, 1.63646424, np.pi/2],
+                            ], dtype=np.float32).tolist()
     nb_dims = 3
     
     # for car
-    positive_iou_threshold = 0.6
-    negative_iou_threshold = 0.3
+    # positive_iou_threshold = 0.6
+    # negative_iou_threshold = 0.3
     
     # for pedestrian
-    # positive_iou_threshold = 0.5
-    # negative_iou_threshold = 0.35
+    positive_iou_threshold = 0.5
+    negative_iou_threshold = 0.35
 
     # batch_size = 1
     num_gpus = 1

@@ -11,10 +11,14 @@ def build_point_pillar_graph(params: Parameters):
     max_points  = int(params.max_points_per_pillar)
     nb_features = int(params.nb_features)
     nb_channels = int(params.nb_channels)
-    batch_size  = int(params.batch_size)
+    batch_size  = int(params.batch_size) 
     image_size  = tuple([params.Xn, params.Yn])
     nb_classes  = int(params.nb_classes)
     nb_anchors  = len(params.anchor_dims)
+    num_gpus = int(params.num_gpus)
+    # batch_size = batch_size // num_gpus
+
+    # print(batch_size)
 
     if tf.keras.backend.image_data_format() == "channels_first":
         raise NotImplementedError
@@ -24,10 +28,12 @@ def build_point_pillar_graph(params: Parameters):
     input_pillars = tf.keras.layers.Input(input_shape, batch_size=batch_size, name="pillars/input")
     input_indices = tf.keras.layers.Input((max_pillars, 3), batch_size=batch_size, name="pillars/indices",
                                           dtype=tf.int32)
+    # print(batch_size, input_indices.shape, input_pillars.shape)
 
     def correct_batch_indices(tensor, batch_size):
-        array = np.zeros((batch_size, max_pillars, 3), dtype=np.float32)
-        for i in range(batch_size):
+        array = np.zeros((batch_size//num_gpus, max_pillars, 3), dtype=np.float32)
+        # print(batch_size, array.shape, input_pillars.shape)
+        for i in range(batch_size//num_gpus):
             array[i, :, 0] = i
         return tensor + tf.constant(array, dtype=tf.int32)
 

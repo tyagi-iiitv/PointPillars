@@ -1,8 +1,8 @@
 import numpy as np
 import cv2 as cv
 from typing import List
-from config_v2 import Parameters
-from point_pillars_custom_processors_v2 import DataProcessor
+from config_v2_2 import Parameters
+from point_pillars_custom_processors_v2_2 import DataProcessor
 
 
 class BBox(tuple):

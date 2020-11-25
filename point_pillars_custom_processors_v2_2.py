@@ -14,6 +14,7 @@ import sys
 from det3d.pc_kitti_dataset import PCKittiAugmentedDataset
 
 from point_viz.converter import PointvizConverter
+from datetime import datetime
 
 
 def select_best_anchors(arr):
@@ -40,7 +41,7 @@ class DataProcessor(Parameters):
         assert points.ndim == 2
         assert points.shape[1] == 4
         assert points.dtype == np.float32
-
+        # start=datetime.now()
         pillars, indices = createPillars(points,
                                          self.max_points_per_pillar,
                                          self.max_pillars,
@@ -53,6 +54,7 @@ class DataProcessor(Parameters):
                                          self.z_min,
                                          self.z_max,
                                          False)
+        # print("Create pillar takes : ", datetime.now()-start)
 
         return pillars, indices
 
@@ -92,6 +94,8 @@ class DataProcessor(Parameters):
         assert np.all(target_yaw >= -np.pi) & np.all(target_yaw <= np.pi)
         assert len(target_positions) == len(target_dimension) == len(target_yaw) == len(target_class)
 
+        # start=datetime.now()
+
         target, pos, neg = createPillarsTarget(target_positions,
                                                target_dimension,
                                                target_yaw,
@@ -112,6 +116,9 @@ class DataProcessor(Parameters):
                                                self.z_min,
                                                self.z_max,
                                                False)
+        
+        # print("Create target takes : ", datetime.now()-start)
+
         self.pos_cnt += pos
         self.neg_cnt += neg
 

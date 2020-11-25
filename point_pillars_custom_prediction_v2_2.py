@@ -3,8 +3,8 @@ from glob import glob
 import numpy as np
 import tensorflow as tf
 from point_pillars_custom_processors_v2_2 import CustomDataGenerator, AnalyseCustomDataGenerator
-from inference_utils_v2 import generate_bboxes_from_pred, GroundTruthGenerator
-from inference_utils_v2 import focal_loss_checker, rotational_nms, generate_bboxes_from_pred_and_np_array
+from inference_utils_v2_2 import generate_bboxes_from_pred
+from inference_utils_v2_2 import focal_loss_checker, rotational_nms, generate_bboxes_from_pred_and_np_array
 from readers import KittiDataReader
 from config_v2_2 import Parameters
 from network_v2_2 import build_point_pillar_graph
@@ -52,9 +52,12 @@ if __name__ == "__main__":
 
     inference_duration = []
 
-    for batch_idx in range(0,70):
+    for batch_idx in range(0,10):
         [pillars, voxels], [occupancy_, position_, size_, angle_, heading_], [pts_input, gt_boxes3d, sample] = validation_gen[batch_idx]
 
+        # 4 * 12000 * 100 * 9, 502 * 502 * 2
+
+        # 4 * 20000 * 4
 
         start=datetime.now()
 
@@ -132,34 +135,4 @@ if __name__ == "__main__":
             # coor[:,1] *= -1
             Converter.compile("val_custom_sample_{}".format(batch_idx * params.batch_size+i), coors=coor, intensity=pts_input[i][:,3],
                             bbox_params=gt_bbox_params_list)
-    print("Average runtime speed: ", np.mean(inference_duration[20:]))
-        #     set_boxes.append(set_box)
-        #     # set_boxes.append(generate_bboxes_from_pred(occupancy, position, size, angle, heading,
-        #     #                                         classification, params.anchor_dims, occ_threshold=0.1))
-        #     # confidences.append([float(boxes.conf) for boxes in set_boxes[-1]])
-        
-        # sum_bboxes = 0
-        # for h in range(len(set_boxes)):
-        #     sum_bboxes += len(set_boxes[h])
-
-        # print('Batch ', str(batch_idx) ,': Box predictions with occupancy > occ_thr: ', sum_bboxes)
-        # print('Scene 1: Box predictions with occupancy > occ_thr: ', len(set_boxes[0]))
-        # exit()
-        # print(set_boxes[-1])
-
-        # # NMS
-        # nms_boxes = rotational_nms(set_boxes, confidences, occ_threshold=0.7, nms_iou_thr=0.5)
-
-        # print('Scene 1: Boxes after NMS with iou_thr: ', len(nms_boxes[0]))
-
-    # # Do all the further operations on predicted_boxes array, which contains the predicted bounding boxes
-    # gt_gen = GroundTruthGenerator(data_reader, label_files, calibration_files, network_format=False)
-    # gt_gen0 = GroundTruthGenerator(data_reader, label_files, calibration_files, network_format=True)
-    # for seq_boxes, gt_label, gt0 in zip(nms_boxes, gt_gen, gt_gen0):
-    #     print("---------- New Scenario ---------- ")
-    #     focal_loss_checker(gt0[0], occupancy[0], n_occs=-1)
-    #     print("---------- ------------ ---------- ")
-    #     for gt in gt_label:
-    #         print(gt)
-    #     for pred in seq_boxes:
-    #         print(pred)
+    print("Average runtime speed: ", np.mean(inference_duration[4:]))
