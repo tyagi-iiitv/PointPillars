@@ -24,10 +24,13 @@ class BBox(tuple):
         self.heading = bb_heading
         self.cls = bb_cls
         self.conf = bb_conf
+        self.real_cls = ' | '.join(np.array([key for key in Parameters.classes.keys()])\
+                                    [np.array([val for val in Parameters.classes.values()]) == self.cls]\
+                                        .tolist())
 
     def __str__(self):
         return "BB | Cls: %s, x: %f, y: %f, l: %f, w: %f, yaw: %f" % (
-            self.cls, self.x, self.y, self.length, self.width, self.yaw)
+            self.real_cls, self.x, self.y, self.length, self.width, self.yaw)
 
 
 def rotational_nms(set_boxes, confidences, occ_threshold=0.7, nms_iou_thr=0.5):
@@ -38,14 +41,17 @@ def rotational_nms(set_boxes, confidences, occ_threshold=0.7, nms_iou_thr=0.5):
     assert len(set_boxes) == len(confidences) and 0 < occ_threshold < 1 and 0 < nms_iou_thr < 1
     if not len(set_boxes):
         return []
-    assert (isinstance(set_boxes[0][0][0][0], float) or isinstance(set_boxes[0][0][0][0], int)) and \
-           (isinstance(confidences[0][0], float) or isinstance(confidences[0][0], int))
+    # assert (isinstance(set_boxes[0][0][0][0], float) or isinstance(set_boxes[0][0][0][0], int)) and \
+    #        (isinstance(confidences[0][0], float) or isinstance(confidences[0][0], int))
     nms_boxes = []
     for boxes, confs in zip(set_boxes, confidences):
         assert len(boxes) == len(confs)
         indices = cv.dnn.NMSBoxesRotated(boxes, confs, occ_threshold, nms_iou_thr)
-        indices = indices.reshape(len(indices)).tolist()
-        nms_boxes.append([boxes[i] for i in indices])
+        if len(indices) > 0:
+            indices = indices.reshape(len(indices)).tolist()
+            nms_boxes.append([boxes[i] for i in indices])
+        else:
+            nms_boxes.append([])
     return nms_boxes
 
 

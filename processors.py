@@ -1,9 +1,6 @@
 from typing import List
 import numpy as np
 import tensorflow as tf
-
-from tensorflow.python.keras.utils.data_utils import Sequence
-
 from config import Parameters
 from point_pillars import createPillars, createPillarsTarget
 from readers import DataReader, Label3D
@@ -117,7 +114,7 @@ class DataProcessor(Parameters):
         return sel[..., 0], sel[..., 1:4], sel[..., 4:7], sel[..., 7], sel[..., 8], ohe
 
 
-class SimpleDataGenerator(DataProcessor, Sequence):
+class SimpleDataGenerator(DataProcessor, tf.keras.utils.Sequence):
     """ Multiprocessing-safe data generator for training, validation or testing, without fancy augmentation """
 
     def __init__(self, data_reader: DataReader, batch_size: int, lidar_files: List[str], label_files: List[str] = None,
@@ -182,15 +179,21 @@ class SimpleDataGenerator(DataProcessor, Sequence):
         voxels = np.concatenate(voxels, axis=0)
 
         if self.label_files is not None:
-            occupancy = np.array(occupancy)
-            position = np.array(position)
-            size = np.array(size)
-            angle = np.array(angle)
-            heading = np.array(heading)
-            classification = np.array(classification)
-            return [pillars, voxels], [occupancy, position, size, angle, heading, classification]
+            occupancy = np.array(occupancy, dtype=np.float32)
+            position = np.array(position, dtype=np.float32)
+            size = np.array(size, dtype=np.float32)
+            angle = np.array(angle, dtype=np.float32)
+            heading = np.array(heading, dtype=np.float32)
+            classification = np.array(classification, dtype=np.float32)
+            return ({'pillars/input': pillars, 'pillars/indices': voxels}, 
+                    {'occupancy/conv2d': occupancy, 'loc/reshape': position, 
+                        'size/reshape': size, 'angle/conv2d': angle, 'heading/conv2d': heading, 
+                        'clf/reshape': classification})
+            # return (pillars, voxels), (occupancy, position, size,  angle,  heading, classification)
+
         else:
-            return [pillars, voxels]
+            return {'pillars/input': pillars, 'pillars/indices': voxels}
+            # return (pillars, voxels)
 
     def on_epoch_end(self):
         #         print("inside epoch")

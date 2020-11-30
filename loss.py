@@ -17,11 +17,13 @@ class PointPillarNetworkLoss:
         self.class_weight = float(params.class_weight)
 
     def losses(self):
-        return [self.focal_loss, self.loc_loss, self.size_loss, self.angle_loss, self.heading_loss, self.class_loss]
+        return {'occupancy/conv2d': self.focal_loss, 'loc/reshape': self.loc_loss, 
+                'size/reshape': self.size_loss, 'angle/conv2d': self.angle_loss, 
+                'heading/conv2d': self.heading_loss, 'clf/reshape': self.class_loss}
+        # return [self.focal_loss, self.loc_loss, self.size_loss, self.angle_loss, self.heading_loss, self.class_loss]
 
     def focal_loss(self, y_true: tf.Tensor, y_pred: tf.Tensor):
         """ y_true value from occ in {-1, 0, 1}, i.e. {bad match, neg box, pos box} """
-
         self.mask = tf.equal(y_true, 1)
 
         cross_entropy = K.binary_crossentropy(y_true, y_pred)
