@@ -16,20 +16,24 @@ DATA_ROOT = "../training"  # TODO make main arg
 MODEL_ROOT = "./logs"
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 if __name__ == "__main__":
 
     params = Parameters()
 
-    pillar_net = build_point_pillar_graph(params)
-    pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
-
+    gpus = tf.config.experimental.list_physical_devices('GPU')
     loss = PointPillarNetworkLoss(params)
-
     optimizer = tf.keras.optimizers.Adam(lr=params.learning_rate, decay=params.decay_rate)
-
-    pillar_net.compile(optimizer, loss=loss.losses())
+    if len(gpus)>1:
+        strategy = tf.distribute.MirroredStrategy(cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())
+        with strategy.scope():
+            pillar_net = build_point_pillar_graph(params)
+            pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+            pillar_net.compile(optimizer, loss=loss.losses())
+    else:
+        pillar_net = build_point_pillar_graph(params)
+        pillar_net.load_weights(os.path.join(MODEL_ROOT, "model.h5"))
+        pillar_net.compile(optimizer, loss=loss.losses())
 
     data_reader = KittiDataReader()
 

@@ -27,10 +27,12 @@ if __name__ == "__main__":
     label_files = sorted(glob(os.path.join(DATA_ROOT, "label_2", "*.txt")))
     calibration_files = sorted(glob(os.path.join(DATA_ROOT, "calib", "*.txt")))
     assert len(lidar_files) == len(label_files) == len(calibration_files), "Input dirs require equal number of files."
-    eval_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files, label_files, calibration_files)
+    validation_len = int(0.3*len(label_files))
+    eval_gen = SimpleDataGenerator(data_reader, params.batch_size, lidar_files[-validation_len:], label_files[-validation_len:], calibration_files[-validation_len:])
 
     occupancy, position, size, angle, heading, classification = pillar_net.predict(eval_gen,
-                                                                                   batch_size=params.batch_size)
+                                                                                   batch_size=params.batch_size,
+                                                                                   verbose=1)
     set_boxes, confidences = [], []
     loop_range = occupancy.shape[0] if len(occupancy.shape) == 4 else 1
     for i in range(loop_range):
